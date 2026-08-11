@@ -1300,9 +1300,21 @@
     }
   }
 
+
+  async function loadWaiverState(){
+    try{
+      const r=await fetch('/api/public/waivers?ts='+Date.now(),{cache:'no-store'});
+      if(!r.ok) return;
+      const data=await r.json();
+      renderWaivers(data||{});
+    }catch(e){
+      console.warn('Waiver state unavailable:',e);
+    }
+  }
+
   async function loadPublicLeagueState(){
     try{
-      const r=await fetch('/api/public/state',{cache:'no-store'});
+      const r=await fetch('/api/public/state?ts='+Date.now(),{cache:'no-store'});
       if(!r.ok) return;
       const data=await r.json();
 
@@ -1366,10 +1378,12 @@
   renderBoard();
   renderTeams();
   loadPublicLeagueState();
+  loadWaiverState();
   loadChat();
 
   // Keep open league pages current after commissioner updates.
   setInterval(loadPublicLeagueState, 15000);
+  setInterval(loadWaiverState, 10000);
   setInterval(loadChat, 10000);
 </script>
 

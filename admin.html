@@ -297,11 +297,12 @@ function renderWaiverAdmin(){
 document.getElementById('saveWaiverLimit').addEventListener('click',async()=>{
   try{
     const limit=document.getElementById('waiverLimit').value.trim();
-    await api('/api/admin/waivers/settings',{
+    const saved=await api('/api/admin/waivers/settings',{
       method:'PUT',
       body:JSON.stringify({limit})
     });
-    document.getElementById('waiverStatus').textContent='Season waiver limit saved.';
+    document.getElementById('waiverStatus').textContent=
+      saved.waiverLimit===null ? 'Season waiver limit cleared.' : `Season waiver limit saved at ${saved.waiverLimit} per team.`;
     await loadState();
   }catch(e){
     document.getElementById('waiverStatus').textContent=e.message;

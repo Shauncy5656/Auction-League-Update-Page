@@ -239,6 +239,19 @@ function buildWaiverSummary(){
   return summary;
 }
 
+
+app.get('/api/public/waivers',(req,res)=>{
+  const transactions=[...state.waiverTransactions].sort((a,b)=>{
+    if(a.date===b.date) return String(b.createdAt).localeCompare(String(a.createdAt));
+    return b.date.localeCompare(a.date);
+  });
+  res.json({
+    limit:state.waiverLimit,
+    summary:buildWaiverSummary(),
+    transactions
+  });
+});
+
 app.get('/api/waivers',(req,res)=>{
   const transactions=[...state.waiverTransactions].sort((a,b)=>{
     if(a.date===b.date) return String(b.createdAt).localeCompare(String(a.createdAt));

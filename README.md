@@ -1,32 +1,14 @@
-# Auction League Hub — Version 20.6 Waiver Tracker
+# Auction League Hub — Version 20.7 Waiver Limit Sync Fix
 
-New waiver system:
+Fixes the issue where the Commissioner Admin could save a waiver pickup limit but the public Waivers page still displayed "Not set".
 
-## Main page
-Directly under Season Weekly Wins, every team is listed with:
-- Total waiver pickups
-- Total waiver cost
-- Waiver pickups remaining
-
-The remaining count is calculated automatically from the commissioner-set season pickup limit.
-
-## Waivers tab
-A dedicated Waivers tab shows every waiver transaction:
-- Date
-- Team
-- Player picked up
-- Pickup cost
-
-## Commissioner Admin
-The commissioner can:
-- Set/change the season waiver pickup limit per team
-- Add each waiver pickup with team, player, cost, and date
-- Delete an incorrect pickup
-
-All summary totals are calculated automatically from the transaction history, so no duplicate manual entry is required.
-
-All Version 20.5 chat fixes and manual weekly winner features remain intact.
+Changes:
+- Adds a dedicated public waiver-state endpoint.
+- Public Waivers summary refreshes directly from that endpoint every 10 seconds.
+- Adds cache-busting to public state requests.
+- Admin confirms the exact saved limit after Save Pickup Limit.
+- Keeps Version 20.6 Waiver Tracker design and all Version 20.5 chat fixes.
 
 Important:
 Current results, waiver data, and chat are still stored in Render server memory.
-Persistent storage should be the next infrastructure upgrade before season use.
+Persistent storage remains the next recommended infrastructure upgrade.
