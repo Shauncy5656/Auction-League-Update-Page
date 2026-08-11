@@ -1,14 +1,19 @@
-# Auction League Hub — Version 20.2 Named Chat
+# Auction League Hub — Version 20.3 iPhone Chat Identity Fix
+
+Fixes the name-selector issue seen on iPhone Safari.
 
 Changes:
-- Chat no longer posts as "League Member".
-- Each user chooses their league name once from the current team list.
-- The selected name is remembered on that device/browser using localStorage.
-- Users can tap Change to switch names later.
-- Only names currently in the league team list are accepted by the server.
-- Shaun appears simply as "Shaun" like everyone else.
-- All Version 20.1 cleanup and automatic running-total behavior remains intact.
+- Name picker now uses a standard form submit.
+- Saves identity to both localStorage and a secure SameSite cookie.
+- Uses an in-page memory fallback if browser storage is restricted.
+- Modal closes immediately after Save Name.
+- Removes duplicate HTML IDs from the two chat identity displays.
+- If a saved name is no longer a current team, the site asks the user to choose again.
 
-Important:
-Current weekly results and chat are still stored in Render server memory.
-Persistent storage should remain the next infrastructure upgrade.
+All Version 20.2 features remain:
+- Named chat
+- Empty/clean chat starting state
+- Admin chat clear control
+- Manual weekly results
+- Automatic running win totals and sorting
+- Automatic public-page refresh
