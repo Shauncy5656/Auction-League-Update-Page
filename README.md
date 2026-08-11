@@ -1,28 +1,22 @@
-# Auction League Hub — Version 20 Manual Admin
+# Auction League Hub — Version 20.1 Cleanup
 
-Version 20 makes manual weekly result entry the primary workflow.
+Changes:
+- Removed all sample/demo chat messages.
+- Shared chat now starts empty.
+- Commissioner can clear chat from Admin.
+- Weekly running totals are calculated automatically from saved weekly results.
+- All teams remain visible, including teams with 0 wins.
+- Win columns automatically sort most wins to least.
+- Public pages re-check commissioner results every 15 seconds.
+- Chat re-checks every 10 seconds.
 
-## Commissioner Admin
-For any Week 1–18, enter:
-- Weekly High Team winner
-- Weekly High Team score
-- Position Challenge winning team
-- Winning player
-- Player actual position (optional)
-- Position Challenge score
+Manual weekly workflow:
+1. Commissioner enters the week's High Team winner and score.
+2. Commissioner enters the Position Challenge winner/player/score.
+3. Save Weekly Results.
+4. Server recalculates both season win totals automatically.
+5. Open public pages update automatically within about 15 seconds.
 
-Saving a week updates the public site's:
-- Weekly High Team Score
-- Position Challenge Winner
-- Season Weekly Wins totals
-- Automatic most-wins-to-least sorting
-- Next Week position preview
-
-Yahoo remains optional for later.
-
-## Important persistence note
-The current build stores manual results in the running Render server's memory.
-A Render restart or future deployment can reset entries.
-
-The recommended next infrastructure step is persistent storage so results, teams,
-challenge schedules, and chat survive restarts.
+Important:
+Current data is still stored in Render server memory. A restart/deployment can reset
+weekly results and chat. Persistent storage should be the next infrastructure upgrade.

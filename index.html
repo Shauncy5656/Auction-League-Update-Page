@@ -477,6 +477,14 @@
       margin-bottom:14px;
     }
 
+
+    .chat-empty{
+      color:#9fb2c4;
+      font-size:14px;
+      padding:18px 2px 12px;
+      text-align:center;
+    }
+
 </style>
 </head>
 <body>
@@ -507,40 +515,13 @@
         <div class="section-head">
           <div>
             <div class="section-kicker">League Chat</div>
-            <div class="small" style="margin-top:4px">Live league conversation</div>
+            <div class="small" style="margin-top:4px">League conversation</div>
           </div>
-          <div class="live"><span class="live-dot"></span>LIVE</div>
+          <div class="live"><span class="live-dot"></span>CHAT</div>
         </div>
 
         <div id="homeChatList" class="chat-thread">
-          <div class="chat-row">
-            <div class="avatar">V</div>
-            <div class="msg-wrap">
-              <div class="msg-meta"><span class="msg-name">Vance</span><span class="msg-time">11:32 AM</span></div>
-              <div class="msg">FLEX week is looking good for me 👀</div>
-            </div>
-          </div>
-          <div class="chat-row">
-            <div class="avatar red">S</div>
-            <div class="msg-wrap">
-              <div class="msg-meta"><span class="msg-name">Shaun</span><span class="msg-time">11:33 AM</span></div>
-              <div class="msg">Still got Monday night...</div>
-            </div>
-          </div>
-          <div class="chat-row">
-            <div class="avatar">K</div>
-            <div class="msg-wrap">
-              <div class="msg-meta"><span class="msg-name">Keith</span><span class="msg-time">11:34 AM</span></div>
-              <div class="msg">Praying Bowers gets me there 🙏</div>
-            </div>
-          </div>
-          <div class="chat-row">
-            <div class="avatar">N</div>
-            <div class="msg-wrap">
-              <div class="msg-meta"><span class="msg-name">Nate</span><span class="msg-time">11:35 AM</span></div>
-              <div class="msg">Let's go! Big week for everyone.</div>
-            </div>
-          </div>
+          <div class="chat-empty">No messages yet. Start the league conversation.</div>
         </div>
 
         <div class="composer">
@@ -701,9 +682,7 @@
           </div>
         </div>
         <div id="fullChatList" class="chat-thread">
-          <div class="chat-row"><div class="avatar">V</div><div class="msg-wrap"><div class="msg-meta"><span class="msg-name">Vance</span><span class="msg-time">11:32 AM</span></div><div class="msg">FLEX week is looking good for me 👀</div></div></div>
-          <div class="chat-row"><div class="avatar red">S</div><div class="msg-wrap"><div class="msg-meta"><span class="msg-name">Shaun</span><span class="msg-time">11:33 AM</span></div><div class="msg">Still got Monday night...</div></div></div>
-          <div class="chat-row"><div class="avatar">K</div><div class="msg-wrap"><div class="msg-meta"><span class="msg-name">Keith</span><span class="msg-time">11:34 AM</span></div><div class="msg">Praying Bowers gets me there 🙏</div></div></div>
+          <div class="chat-empty">No messages yet. Start the league conversation.</div>
         </div>
         <div class="composer">
           <input id="fullChatInput" placeholder="Message the league..." />
@@ -833,48 +812,81 @@
     if(e.key==='Enter') document.getElementById('settingsAddTeam').click();
   });
 
-  function addMessage(inputId,listId,name='You'){
-    const input=document.getElementById(inputId);
-    const value=input.value.trim();
-    if(!value)return;
-    const row=document.createElement('div');
-    row.className='chat-row';
-    row.innerHTML=`<div class="avatar red">${name[0]}</div>
-      <div class="msg-wrap"><div class="msg-meta"><span class="msg-name">${name}</span><span class="msg-time">now</span></div><div class="msg"></div></div>`;
-    row.querySelector('.msg').textContent=value;
-    document.getElementById(listId).appendChild(row);
-    input.value='';
+  function formatChatTime(iso){
+    try{
+      return new Date(iso).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    }catch(e){ return ''; }
   }
 
-  document.getElementById('homeSend').addEventListener('click',()=>addMessage('homeChatInput','homeChatList'));
-  document.getElementById('fullSend').addEventListener('click',()=>addMessage('fullChatInput','fullChatList'));
-  document.getElementById('homeChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('homeSend').click()});
-  document.getElementById('fullChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('fullSend').click()});
+  function renderChatMessages(messages){
+    ['homeChatList','fullChatList'].forEach(listId=>{
+      const list=document.getElementById(listId);
+      if(!list) return;
+
+      if(!messages || !messages.length){
+        list.innerHTML='<div class="chat-empty">No messages yet. Start the league conversation.</div>';
+        return;
+      }
+
+      list.innerHTML=messages.map(item=>{
+        const safeName=String(item.name||'League Member');
+        const safeMessage=String(item.message||'');
+        return `<div class="chat-row">
+          <div class="avatar">${initials(safeName)}</div>
+          <div class="msg-wrap">
+            <div class="msg-meta">
+              <span class="msg-name"></span>
+              <span class="msg-time">${formatChatTime(item.createdAt)}</span>
+            </div>
+            <div class="msg"></div>
+          </div>
+        </div>`;
+      }).join('');
+
+      [...list.querySelectorAll('.chat-row')].forEach((row,i)=>{
+        row.querySelector('.msg-name').textContent=messages[i].name;
+        row.querySelector('.msg').textContent=messages[i].message;
+      });
+    });
+  }
+
+  async function loadChat(){
+    try{
+      const r=await fetch('/api/chat',{cache:'no-store'});
+      if(!r.ok) return;
+      const data=await r.json();
+      renderChatMessages(data.messages||[]);
+    }catch(e){}
+  }
+
+  async function sendChat(inputId){
+    const input=document.getElementById(inputId);
+    const value=input.value.trim();
+    if(!value) return;
+
+    // For now messages post under "League Member".
+    // A lightweight name picker can be added next.
+    const r=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:'League Member',message:value})
+    });
+    if(r.ok){
+      input.value='';
+      await loadChat();
+    }
+  }
+
+  document.getElementById('homeSend').addEventListener('click',()=>sendChat('homeChatInput'));
+  document.getElementById('fullSend').addEventListener('click',()=>sendChat('fullChatInput'));
+  document.getElementById('homeChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat('homeChatInput')});
+  document.getElementById('fullChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat('fullChatInput')});
 
 
-  const weeklyHighWins = [
-    {team:'Shaun', wins:2},
-    {team:'Brandon', wins:1},
-    {team:'Nate', wins:0},
-    {team:'Keith', wins:1},
-    {team:'DC', wins:0},
-    {team:'Vance', wins:0},
-    {team:'Sol', wins:0},
-    {team:'Guy', wins:0},
-    {team:'Makua', wins:0}
-  ];
 
-  const positionHighWins = [
-    {team:'Shaun', wins:1},
-    {team:'Brandon', wins:0},
-    {team:'Nate', wins:1},
-    {team:'Keith', wins:2},
-    {team:'DC', wins:0},
-    {team:'Vance', wins:0},
-    {team:'Sol', wins:0},
-    {team:'Guy', wins:0},
-    {team:'Makua', wins:0}
-  ];
+
+  const weeklyHighWins = teams.map(team=>({team,wins:0}));
+  const positionHighWins = teams.map(team=>({team,wins:0}));
 
   function syncAllTeamsIntoWinTotals(){
     teams.forEach(team=>{
@@ -917,91 +929,6 @@
     const count = document.getElementById('winsTeamCount');
     if(count) count.textContent = `${teams.length} teams • all teams shown • automatically sorted`;
   }
-
-
-  const liveWeekState = {
-    finalized: false,
-    weeklyHigh: { team: 'Shaun', score: 181.7 },
-    positionLeader: { team: 'Vance', player: 'Bijan Robinson', actualPosition: 'RB', slot: 'FLEX', score: 34.8 }
-  };
-
-  const demoRefreshStates = [
-    {
-      weeklyHigh: { team: 'Shaun', score: 181.7 },
-      positionLeader: { team: 'Vance', player: 'Bijan Robinson', actualPosition: 'RB', slot: 'FLEX', score: 34.8 }
-    },
-    {
-      weeklyHigh: { team: 'Brandon', score: 186.4 },
-      positionLeader: { team: 'Shaun', player: 'Amon-Ra St. Brown', actualPosition: 'WR', slot: 'FLEX', score: 36.2 }
-    },
-    {
-      weeklyHigh: { team: 'Keith', score: 192.1 },
-      positionLeader: { team: 'Keith', player: 'Brock Bowers', actualPosition: 'TE', slot: 'FLEX', score: 38.6 }
-    },
-    {
-      weeklyHigh: { team: 'Vance', score: 197.8 },
-      positionLeader: { team: 'Vance', player: 'Bijan Robinson', actualPosition: 'RB', slot: 'FLEX', score: 41.3 }
-    }
-  ];
-  let demoRefreshIndex = 0;
-
-  function renderLiveWeek(){
-    document.getElementById('weeklyHighTeamName').textContent = liveWeekState.weeklyHigh.team;
-    document.getElementById('weeklyHighTeamScore').textContent = liveWeekState.weeklyHigh.score.toFixed(1);
-
-    document.getElementById('positionLeaderPlayer').textContent = liveWeekState.positionLeader.player;
-    document.getElementById('positionLeaderMeta').textContent =
-      `${liveWeekState.positionLeader.team} • ${liveWeekState.positionLeader.actualPosition} • ${liveWeekState.positionLeader.slot}`;
-    document.getElementById('positionLeaderScore').textContent = liveWeekState.positionLeader.score.toFixed(1);
-    document.getElementById('weekStatusText').textContent = liveWeekState.finalized ? 'Final' : 'Live';
-  }
-
-  function setLastSync(){
-    const now = new Date();
-    document.getElementById('lastSyncText').textContent =
-      now.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  }
-
-  const simulateRefreshBtn = document.getElementById('simulateRefresh');
-  if(simulateRefreshBtn) simulateRefreshBtn.addEventListener('click',()=>{
-    if(liveWeekState.finalized) return;
-    demoRefreshIndex = (demoRefreshIndex + 1) % demoRefreshStates.length;
-    const next = demoRefreshStates[demoRefreshIndex];
-    liveWeekState.weeklyHigh = {...next.weeklyHigh};
-    liveWeekState.positionLeader = {...next.positionLeader};
-    renderLiveWeek();
-    setLastSync();
-    document.getElementById('syncStatusText').textContent = 'Live Demo';
-    document.getElementById('settingsSyncStatus').textContent = 'Live Demo';
-  });
-
-  const connectYahooBtn = document.getElementById('connectYahoo');
-  if(connectYahooBtn) connectYahooBtn.addEventListener('click',()=>{
-    const leagueId = document.getElementById('yahooLeagueId').value.trim();
-    document.getElementById('yahooHelpText').textContent = leagueId
-      ? 'Yahoo connection UI is ready. The hosted version will open Yahoo authorization and securely save the connection on the server.'
-      : 'Enter the Yahoo League ID first. The hosted version will then use Yahoo authorization to connect securely.';
-  });
-
-  const finalizeWeekBtn = document.getElementById('finalizeWeek');
-  if(finalizeWeekBtn) finalizeWeekBtn.addEventListener('click',()=>{
-    if(liveWeekState.finalized) return;
-    liveWeekState.finalized = true;
-
-    const weeklyWinner = weeklyHighWins.find(x=>x.team===liveWeekState.weeklyHigh.team);
-    if(weeklyWinner) weeklyWinner.wins += 1;
-
-    const positionWinner = positionHighWins.find(x=>x.team===liveWeekState.positionLeader.team);
-    if(positionWinner) positionWinner.wins += 1;
-
-    renderSeasonWins();
-    renderLiveWeek();
-    setLastSync();
-    document.getElementById('syncStatusText').textContent = 'Week Final';
-    document.getElementById('settingsSyncStatus').textContent = 'Week Final';
-    document.getElementById('yahooHelpText').textContent =
-      'Week finalized in the demo. The two winners were added to the Season Weekly Wins totals and the live leaders are now locked.';
-  });
 
 
   async function loadPublicLeagueState(){
@@ -1060,11 +987,15 @@
     }
   }
 
-  renderLiveWeek();
   renderSeasonWins();
   renderBoard();
   renderTeams();
   loadPublicLeagueState();
+  loadChat();
+
+  // Keep open league pages current after commissioner updates.
+  setInterval(loadPublicLeagueState, 15000);
+  setInterval(loadChat, 10000);
 </script>
 </body>
 </html>

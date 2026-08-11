@@ -106,6 +106,17 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
     <div class="status" id="scheduleStatus"></div>
   </div>
 
+
+  <div class="card">
+    <div class="kicker">League Chat</div>
+    <h2>Chat Administration</h2>
+    <div class="status">Use this if you ever want to clear the shared league conversation.</div>
+    <div class="actions">
+      <button class="btn secondary" id="clearChat">Clear League Chat</button>
+    </div>
+    <div class="status" id="chatAdminStatus"></div>
+  </div>
+
   <div class="card">
     <div class="kicker">Optional Future Automation</div>
     <h2>Yahoo Connection (Optional)</h2>
@@ -265,6 +276,12 @@ document.getElementById('connectYahoo').addEventListener('click',()=>{
   window.location='/auth/yahoo?leagueId='+encodeURIComponent(leagueId);
 });
 
+
+document.getElementById('clearChat').addEventListener('click',async()=>{
+  if(!confirm('Clear all league chat messages?')) return;
+  await api('/api/admin/chat',{method:'DELETE'});
+  document.getElementById('chatAdminStatus').textContent='League chat cleared.';
+});
 
 loadState().catch(e=>console.error(e));
 </script>

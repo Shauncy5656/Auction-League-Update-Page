@@ -18,7 +18,8 @@ const state = {
     1:'WR',2:'QB',3:'RB',4:'TE',5:'FLEX',6:'WR',7:'DEF',8:'RB',
     9:'QB',10:'TE',11:'FLEX',12:'WR',13:'RB',14:'QB',15:'TE',16:'FLEX',17:'WR',18:'RB'
   },
-  weeklyResults: {}
+  weeklyResults: {},
+  chatMessages: []
 };
 
 let yahooConnection = {
@@ -159,6 +160,32 @@ function buildPublicState(){
 
 app.get('/api/public/state',(req,res)=>{
   res.json(buildPublicState());
+});
+
+
+app.get('/api/chat',(req,res)=>{
+  res.json({messages:state.chatMessages.slice(-100)});
+});
+
+app.post('/api/chat',(req,res)=>{
+  const name=String(req.body.name||'League Member').trim().slice(0,30) || 'League Member';
+  const message=String(req.body.message||'').trim().slice(0,500);
+  if(!message) return res.status(400).send('Message is required.');
+
+  const item={
+    id:crypto.randomBytes(8).toString('hex'),
+    name,
+    message,
+    createdAt:new Date().toISOString()
+  };
+  state.chatMessages.push(item);
+  if(state.chatMessages.length>100) state.chatMessages=state.chatMessages.slice(-100);
+  res.json({ok:true,message:item});
+});
+
+app.delete('/api/admin/chat',requireAdmin,(req,res)=>{
+  state.chatMessages=[];
+  res.json({ok:true});
 });
 
 app.get('/api/status',(req,res)=>res.json({
