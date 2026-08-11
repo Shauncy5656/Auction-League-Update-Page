@@ -168,8 +168,9 @@ app.get('/api/chat',(req,res)=>{
 });
 
 app.post('/api/chat',(req,res)=>{
-  const name=String(req.body.name||'League Member').trim().slice(0,30) || 'League Member';
+  const name=String(req.body.name||'').trim().slice(0,30);
   const message=String(req.body.message||'').trim().slice(0,500);
+  if(!state.teams.includes(name)) return res.status(400).send('Choose a valid league name.');
   if(!message) return res.status(400).send('Message is required.');
 
   const item={

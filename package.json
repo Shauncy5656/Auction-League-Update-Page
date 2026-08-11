@@ -1,6 +1,6 @@
 {
   "name": "auction-league-hub",
-  "version": "20.1.0",
+  "version": "20.2.0",
   "private": true,
   "scripts": {
     "start": "node server.js"
