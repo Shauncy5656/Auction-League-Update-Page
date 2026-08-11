@@ -1,17 +1,18 @@
-# Auction League Hub — Version 20.8 Shared Data Fix
+# Auction League Hub — Version 20.9 Weekly Results Sync Fix
 
-Major data-flow cleanup.
+This version gives weekly winner results the same dedicated public-data path that fixed waivers.
 
 Fixes:
-- Removes the hard-coded sample standings from the Winners tab.
-- All league teams now display starting at 0 wins.
-- Total Points, Position Challenge, and Combined standings are rendered from the same server data used by Commissioner Admin.
-- Winners and Waivers refresh when their tabs are opened.
-- Public shared data refreshes when the browser/app becomes active again.
-- Adds Commissioner Admin control: Reset All Winner Totals to 0.
-- Reset clears weekly winner results only; waiver pickups and chat stay intact.
-- Keeps direct waiver-limit refresh and automatic waiver totals.
+- Dedicated `/api/public/results` endpoint for weekly winners.
+- High Team winner/score now refresh independently from the larger public state.
+- Position Challenge winner/player/score now refresh independently.
+- Season Weekly Wins and Winners-tab standings recalculate from the same weekly-result endpoint.
+- Weekly results refresh every 10 seconds and whenever the app returns to the foreground.
+- Admin Save Weekly Results confirms the exact values the server stored.
+- New deployment starts with no weekly results, so every team begins at 0 wins.
 
-Important architecture note:
-Current weekly results, waiver data, and chat are still held in the running Render process.
-A deployment/restart can reset them. Persistent storage should be added before real season data is entered.
+Waiver functionality from Version 20.7 remains unchanged.
+Chat name-selection fixes remain unchanged.
+
+Important:
+The app still stores season data in the running Render process. Persistent storage should be the next upgrade before real season data is entered.

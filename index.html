@@ -992,6 +992,7 @@
 
   function refreshSharedLeagueData(){
     loadPublicLeagueState();
+    loadWeeklyResults();
     loadWaiverState();
   }
 
@@ -1374,6 +1375,69 @@
     }
   }
 
+
+  function applyWeeklyResultsData(data){
+    if(Array.isArray(data.teams)){
+      teams.splice(0,teams.length,...data.teams);
+    }
+
+    weeklyHighWins.splice(0,weeklyHighWins.length,
+      ...teams.map(team=>({team,wins:Number((data.weeklyWins||{})[team]||0)})));
+    positionHighWins.splice(0,positionHighWins.length,
+      ...teams.map(team=>({team,wins:Number((data.positionWins||{})[team]||0)})));
+
+    const latest=data.latestResult;
+    if(latest){
+      document.getElementById('challengeWeekLabel').textContent=`Week ${latest.week} Position Challenge`;
+      document.getElementById('challengePosition').textContent=latest.position || 'FLEX';
+      document.getElementById('challengeCopy').textContent=
+        `Final result entered by commissioner. Highest scorer for the ${latest.position || 'selected'} challenge wins.`;
+
+      document.getElementById('weeklyHighLabel').textContent=`Week ${latest.week} High Team Score`;
+      document.getElementById('weeklyHighTeamName').textContent=latest.weeklyTeam;
+      document.getElementById('weeklyHighTeamScore').textContent=Number(latest.weeklyScore).toFixed(1);
+
+      document.getElementById('positionLeaderLabel').textContent=`Week ${latest.week} Position Winner (${latest.position || 'FLEX'})`;
+      document.getElementById('positionLeaderPlayer').textContent=latest.positionPlayer;
+      document.getElementById('positionLeaderMeta').textContent=
+        `${latest.positionTeam}${latest.actualPosition ? ' • '+latest.actualPosition : ''} • ${latest.position || 'FLEX'}`;
+      document.getElementById('positionLeaderScore').textContent=Number(latest.positionScore).toFixed(1);
+
+      const av=document.getElementById('positionLeaderAvatar');
+      if(av){
+        av.textContent=(latest.positionPlayer||'--')
+          .split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+      }
+    }else{
+      document.getElementById('challengeWeekLabel').textContent='Position Challenge';
+      document.getElementById('challengePosition').textContent='TBD';
+      document.getElementById('challengeCopy').textContent='Weekly position challenge results are entered by the commissioner after the week is complete.';
+      document.getElementById('weeklyHighLabel').textContent='Weekly High Team Score';
+      document.getElementById('weeklyHighTeamName').textContent='TBD';
+      document.getElementById('weeklyHighTeamScore').textContent='--';
+      document.getElementById('positionLeaderLabel').textContent='Position Challenge Winner';
+      document.getElementById('positionLeaderPlayer').textContent='TBD';
+      document.getElementById('positionLeaderMeta').textContent='No completed week entered yet';
+      document.getElementById('positionLeaderScore').textContent='--';
+      const av=document.getElementById('positionLeaderAvatar');
+      if(av) av.textContent='--';
+    }
+
+    renderSeasonWins();
+    renderWinnersTab();
+  }
+
+  async function loadWeeklyResults(){
+    try{
+      const r=await fetch('/api/public/results?ts='+Date.now(),{cache:'no-store'});
+      if(!r.ok) return;
+      const data=await r.json();
+      applyWeeklyResultsData(data||{});
+    }catch(e){
+      console.warn('Weekly results unavailable:',e);
+    }
+  }
+
   async function loadPublicLeagueState(){
     try{
       const r=await fetch('/api/public/state?ts='+Date.now(),{cache:'no-store'});
@@ -1384,47 +1448,6 @@
         teams.splice(0,teams.length,...data.teams);
       }
 
-      weeklyHighWins.splice(0,weeklyHighWins.length,
-        ...teams.map(team=>({team,wins:Number((data.weeklyWins||{})[team]||0)})));
-      positionHighWins.splice(0,positionHighWins.length,
-        ...teams.map(team=>({team,wins:Number((data.positionWins||{})[team]||0)})));
-
-      const latest=data.latestResult;
-      if(latest){
-        document.getElementById('challengeWeekLabel').textContent=`Week ${latest.week} Position Challenge`;
-        document.getElementById('challengePosition').textContent=latest.position || 'FLEX';
-        document.getElementById('challengeCopy').textContent=
-          `Final result entered by commissioner. Highest scorer for the ${latest.position || 'selected'} challenge wins.`;
-
-        document.getElementById('weeklyHighLabel').textContent=`Week ${latest.week} High Team Score`;
-        document.getElementById('weeklyHighTeamName').textContent=latest.weeklyTeam;
-        document.getElementById('weeklyHighTeamScore').textContent=Number(latest.weeklyScore).toFixed(1);
-
-        document.getElementById('positionLeaderLabel').textContent=`Week ${latest.week} Position Winner (${latest.position || 'FLEX'})`;
-        document.getElementById('positionLeaderPlayer').textContent=latest.positionPlayer;
-        document.getElementById('positionLeaderMeta').textContent=
-          `${latest.positionTeam}${latest.actualPosition ? ' • '+latest.actualPosition : ''} • ${latest.position || 'FLEX'}`;
-        document.getElementById('positionLeaderScore').textContent=Number(latest.positionScore).toFixed(1);
-        const av=document.getElementById('positionLeaderAvatar');
-        if(av) av.textContent=(latest.positionPlayer||'--').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
-      }else{
-        document.getElementById('weeklyHighTeamName').textContent='TBD';
-        document.getElementById('weeklyHighTeamScore').textContent='--';
-        document.getElementById('positionLeaderPlayer').textContent='TBD';
-        document.getElementById('positionLeaderMeta').textContent='No completed week entered yet';
-        document.getElementById('positionLeaderScore').textContent='--';
-      }
-
-      if(data.nextWeek){
-        document.getElementById('nextWeekPosition').textContent=(data.challengeSchedule||{})[data.nextWeek] || 'TBD';
-        document.getElementById('nextWeekLabel').textContent='Week '+data.nextWeek;
-      }else{
-        document.getElementById('nextWeekPosition').textContent='—';
-        document.getElementById('nextWeekLabel').textContent='Season Complete';
-      }
-
-      renderSeasonWins();
-      renderWinnersTab();
       renderTeams();
       renderWaivers(data.waivers||{});
       const savedIdentity=getChatIdentity();
@@ -1441,11 +1464,13 @@
   renderBoard();
   renderTeams();
   loadPublicLeagueState();
+  loadWeeklyResults();
   loadWaiverState();
   loadChat();
 
   // Keep open league pages current after commissioner updates.
   setInterval(loadPublicLeagueState, 15000);
+  setInterval(loadWeeklyResults, 10000);
   setInterval(loadWaiverState, 10000);
   setInterval(loadChat, 10000);
 </script>

@@ -397,8 +397,9 @@ document.getElementById('saveResult').addEventListener('click',async()=>{
     positionScore:document.getElementById('positionScore').value
   };
   try{
-    await api('/api/admin/results/'+week,{method:'PUT',body:JSON.stringify(payload)});
-    document.getElementById('resultStatus').textContent='Week '+week+' saved. Public totals updated.';
+    const saved=await api('/api/admin/results/'+week,{method:'PUT',body:JSON.stringify(payload)});
+    document.getElementById('resultStatus').textContent=
+      `Week ${week} saved: ${saved.result.weeklyTeam} ${Number(saved.result.weeklyScore).toFixed(1)} • ${saved.result.positionPlayer} ${Number(saved.result.positionScore).toFixed(1)}.`;
     await loadState();
   }catch(e){
     document.getElementById('resultStatus').textContent=e.message;
