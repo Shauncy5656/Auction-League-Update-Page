@@ -215,7 +215,7 @@
       border-top:1px solid #1a394f;
       padding:8px 8px calc(8px + env(safe-area-inset-bottom));
     }
-    .mobile-nav-inner{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+    .mobile-nav-inner{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
     .mobile-nav button{
       border:0;background:transparent;color:#aebdca;
       padding:9px 4px;border-radius:10px;font-size:12px;font-weight:800;
@@ -495,7 +495,6 @@
         <button class="nav-btn" data-panel="winners">Winners</button>
         <button class="nav-btn" data-panel="challenge">Challenge</button>
         <button class="nav-btn" data-panel="chat">Chat</button>
-        <button class="nav-btn" data-panel="settings">Settings</button>
       </nav>
     </div>
   </header>
@@ -721,80 +720,14 @@
       </div>
     </section>
 
-    <section id="settings" class="panel">
-      <div class="card">
-        <div class="section-head">
-          <div>
-            <div class="section-title">League Settings</div>
-            <div class="small" style="margin-top:4px">Manage the teams that appear throughout the site.</div>
-          </div>
-        </div>
-
-        
-        
-        <div class="settings-live-policy">
-          <div class="section-kicker" style="color:#ffd100">Automatic Live Scoring</div>
-          <div class="small" style="margin-top:6px;line-height:1.5">
-            The hosted version will refresh Yahoo scoring whenever games are active during the fantasy week — including Thursday, Friday, Saturday, Sunday, Monday, or other NFL game days. Live leaders can change throughout the day, while season wins remain uncredited until the week is finalized.
-          </div>
-        </div>
-
-<div class="settings-yahoo-card">
-          <div class="section-head" style="margin-bottom:12px">
-            <div>
-              <div class="section-kicker" style="color:#ffd100">Yahoo Data Connection</div>
-              <div class="small" style="margin-top:5px">This will become the source of truth for live team and player scoring.</div>
-            </div>
-            <div class="sync-status"><span class="sync-dot"></span><span id="settingsSyncStatus">Demo Mode</span></div>
-          </div>
-
-          <div class="settings-grid">
-            <label class="settings-label">
-              Yahoo League ID
-              <input id="yahooLeagueId" placeholder="Enter league ID later" />
-            </label>
-            <label class="settings-label">
-              Fantasy Week
-              <select id="fantasyWeek">
-                <option>Week 1</option><option>Week 2</option><option>Week 3</option><option>Week 4</option>
-                <option selected>Week 5</option><option>Week 6</option><option>Week 7</option><option>Week 8</option>
-                <option>Week 9</option><option>Week 10</option><option>Week 11</option><option>Week 12</option>
-                <option>Week 13</option><option>Week 14</option><option>Week 15</option><option>Week 16</option>
-                <option>Week 17</option><option>Week 18</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="settings-actions">
-            <button id="connectYahoo" class="primary">Connect Yahoo</button>
-            <button id="simulateRefresh" class="secondary-btn">Simulate Yahoo Refresh</button>
-            <button id="finalizeWeek" class="secondary-btn">Finalize Week</button>
-          </div>
-
-          <div class="small" id="yahooHelpText" style="margin-top:10px">
-            In this sample, “Simulate Yahoo Refresh” changes the live leaders so you can see how the finished site will react. Final scores will only count toward season wins after the week is finalized.
-          </div>
-        </div>
-
-<div style="margin-bottom:18px">
-          <div class="section-kicker">Current Teams</div>
-          <div class="small" style="margin-top:5px">These are the team names currently set for the league.</div>
-        </div>
-
-        <div id="settingsTeamList" class="settings-team-list"></div>
-
-        <div class="settings-add">
-          <input id="settingsNewTeam" placeholder="Enter a new team name..." />
-          <button id="settingsAddTeam" class="primary">Add Team</button>
-        </div>
-
-        <div class="small" style="margin-top:12px">
-          In the live shared version, changes made here would update the team list throughout the website for everyone.
-        </div>
-      </div>
-    </section>
+    
 
   </main>
+
+  <div style="max-width:1180px;margin:0 auto;padding:0 20px 92px;text-align:center">
+    <a href="/admin" style="font-size:12px;color:#6f8ca4;text-decoration:none">Commissioner Admin</a>
+  </div>
+
 
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">
@@ -802,7 +735,6 @@
       <button class="mobile-tab" data-panel="winners">Winners</button>
       <button class="mobile-tab" data-panel="challenge">Challenge</button>
       <button class="mobile-tab" data-panel="chat">Chat</button>
-      <button class="mobile-tab" data-panel="settings">Settings</button>
     </div>
   </nav>
 </div>
@@ -889,7 +821,8 @@
 
 
 
-  document.getElementById('settingsAddTeam').addEventListener('click',()=>{
+  const settingsAddTeamBtn = document.getElementById('settingsAddTeam');
+  if(settingsAddTeamBtn) settingsAddTeamBtn.addEventListener('click',()=>{
     const input=document.getElementById('settingsNewTeam');
     const value=input.value.trim();
     if(!value)return;
@@ -903,7 +836,8 @@
     renderSeasonWins();
   });
 
-  document.getElementById('settingsNewTeam').addEventListener('keydown',e=>{
+  const settingsNewTeamInput = document.getElementById('settingsNewTeam');
+  if(settingsNewTeamInput) settingsNewTeamInput.addEventListener('keydown',e=>{
     if(e.key==='Enter') document.getElementById('settingsAddTeam').click();
   });
 
@@ -1036,7 +970,8 @@
       now.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   }
 
-  document.getElementById('simulateRefresh').addEventListener('click',()=>{
+  const simulateRefreshBtn = document.getElementById('simulateRefresh');
+  if(simulateRefreshBtn) simulateRefreshBtn.addEventListener('click',()=>{
     if(liveWeekState.finalized) return;
     demoRefreshIndex = (demoRefreshIndex + 1) % demoRefreshStates.length;
     const next = demoRefreshStates[demoRefreshIndex];
@@ -1048,16 +983,16 @@
     document.getElementById('settingsSyncStatus').textContent = 'Live Demo';
   });
 
-  document.getElementById('connectYahoo').addEventListener('click',()=>{
+  const connectYahooBtn = document.getElementById('connectYahoo');
+  if(connectYahooBtn) connectYahooBtn.addEventListener('click',()=>{
     const leagueId = document.getElementById('yahooLeagueId').value.trim();
-    if(!leagueId){
-      document.getElementById('yahooHelpText').textContent = 'Enter the Yahoo League ID first.';
-      return;
-    }
-    window.location.href = '/auth/yahoo?leagueId=' + encodeURIComponent(leagueId);
+    document.getElementById('yahooHelpText').textContent = leagueId
+      ? 'Yahoo connection UI is ready. The hosted version will open Yahoo authorization and securely save the connection on the server.'
+      : 'Enter the Yahoo League ID first. The hosted version will then use Yahoo authorization to connect securely.';
   });
 
-  document.getElementById('finalizeWeek').addEventListener('click',()=>{
+  const finalizeWeekBtn = document.getElementById('finalizeWeek');
+  if(finalizeWeekBtn) finalizeWeekBtn.addEventListener('click',()=>{
     if(liveWeekState.finalized) return;
     liveWeekState.finalized = true;
 
@@ -1081,20 +1016,5 @@
   renderBoard();
   renderTeams();
 </script>
-
-<script>
-(async function(){
-  try{
-    const r = await fetch('/api/status', {cache:'no-store'});
-    if(!r.ok) return;
-    const s = await r.json();
-    const a = document.getElementById('syncStatusText');
-    const b = document.getElementById('settingsSyncStatus');
-    if(a) a.textContent = s.yahooConnected ? 'Yahoo Connected' : 'Demo Mode';
-    if(b) b.textContent = s.yahooConnected ? 'Yahoo Connected' : 'Demo Mode';
-  }catch(e){}
-})();
-</script>
-
 </body>
 </html>

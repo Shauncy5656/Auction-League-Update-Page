@@ -7,119 +7,143 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(__dirname, { index: 'index.html' }));
+app.use(express.urlencoded({extended:false}));
 
-let yahooConnection = {
-  connected: false,
-  accessToken: null,
-  refreshToken: null,
-  expiresAt: null,
-  leagueId: null
-};
-
+const sessions = new Map();
 const oauthStates = new Map();
 
-app.get('/api/status', (req, res) => {
-  res.json({
-    yahooConnected: yahooConnection.connected,
-    leagueId: yahooConnection.leagueId,
-    mode: yahooConnection.connected ? 'connected' : 'demo'
+const state = {
+  teams: ['Shaun','Brandon','Nate','Keith','DC','Vance','Sol','Guy','Makua'],
+  challengeSchedule: {
+    1:'WR',2:'QB',3:'RB',4:'TE',5:'FLEX',6:'WR',7:'DEF',8:'RB',
+    9:'QB',10:'TE',11:'FLEX',12:'WR',13:'RB',14:'QB',15:'TE',16:'FLEX',17:'WR',18:'RB'
+  }
+};
+
+let yahooConnection = {
+  connected:false, accessToken:null, refreshToken:null, expiresAt:null, leagueId:null
+};
+
+function parseCookies(req){
+  const out={};
+  String(req.headers.cookie||'').split(';').forEach(part=>{
+    const i=part.indexOf('=');
+    if(i>0) out[part.slice(0,i).trim()]=decodeURIComponent(part.slice(i+1).trim());
   });
+  return out;
+}
+function isAdmin(req){
+  const sid=parseCookies(req).admin_session;
+  return !!(sid && sessions.has(sid));
+}
+function requireAdmin(req,res,next){
+  if(!isAdmin(req)) return res.status(401).json({error:'Unauthorized'});
+  next();
+}
+function adminPage(req,res,next){
+  if(!isAdmin(req)) return res.redirect('/admin/login');
+  next();
+}
+
+app.get('/', (req,res)=>res.sendFile(path.join(__dirname,'index.html')));
+
+app.get('/admin/login',(req,res)=>{
+  const error=req.query.error ? 'Incorrect password.' : '';
+  res.send(LOGIN_HTML.replace('__ERROR__',error));
+});
+app.post('/admin/login',(req,res)=>{
+  const configured=process.env.ADMIN_PASSWORD;
+  if(!configured) return res.status(500).send('ADMIN_PASSWORD is not configured on the server.');
+  if(req.body.password!==configured) return res.redirect('/admin/login?error=1');
+  const sid=crypto.randomBytes(32).toString('hex');
+  sessions.set(sid,{createdAt:Date.now()});
+  res.setHeader('Set-Cookie',`admin_session=${sid}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`);
+  res.redirect('/admin');
+});
+app.get('/admin/logout',(req,res)=>{
+  const sid=parseCookies(req).admin_session;
+  if(sid) sessions.delete(sid);
+  res.setHeader('Set-Cookie','admin_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');
+  res.redirect('/');
+});
+app.get('/admin',adminPage,(req,res)=>res.sendFile(path.join(__dirname,'admin.html')));
+
+app.get('/api/admin/state',requireAdmin,(req,res)=>{
+  res.json({teams:state.teams,challengeSchedule:state.challengeSchedule,
+    yahoo:{connected:yahooConnection.connected,leagueId:yahooConnection.leagueId}});
+});
+app.post('/api/admin/teams',requireAdmin,(req,res)=>{
+  const team=String(req.body.team||'').trim();
+  if(!team) return res.status(400).send('Missing team name');
+  if(!state.teams.some(t=>t.toLowerCase()===team.toLowerCase())) state.teams.push(team);
+  res.json({teams:state.teams});
+});
+app.delete('/api/admin/teams',requireAdmin,(req,res)=>{
+  const team=String(req.body.team||'').trim();
+  state.teams=state.teams.filter(t=>t!==team);
+  res.json({teams:state.teams});
+});
+app.put('/api/admin/schedule',requireAdmin,(req,res)=>{
+  state.challengeSchedule=req.body.schedule||state.challengeSchedule;
+  res.json({challengeSchedule:state.challengeSchedule});
 });
 
-app.get('/auth/yahoo', (req, res) => {
-  const { YAHOO_CLIENT_ID, YAHOO_REDIRECT_URI } = process.env;
-  const leagueId = String(req.query.leagueId || '').trim();
+app.get('/api/status',(req,res)=>res.json({
+  yahooConnected:yahooConnection.connected,leagueId:yahooConnection.leagueId,mode:yahooConnection.connected?'connected':'demo'
+}));
 
-  if (!YAHOO_CLIENT_ID || !YAHOO_REDIRECT_URI) {
-    return res.status(500).send('Yahoo OAuth is not configured yet.');
-  }
-  if (!leagueId) {
-    return res.status(400).send('Missing Yahoo League ID.');
-  }
-
-  const state = crypto.randomBytes(24).toString('hex');
-  oauthStates.set(state, { leagueId, createdAt: Date.now() });
-
-  const url = new URL('https://api.login.yahoo.com/oauth2/request_auth');
-  url.searchParams.set('client_id', YAHOO_CLIENT_ID);
-  url.searchParams.set('redirect_uri', YAHOO_REDIRECT_URI);
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('state', state);
-
+app.get('/auth/yahoo', adminPage, (req,res)=>{
+  const {YAHOO_CLIENT_ID,YAHOO_REDIRECT_URI}=process.env;
+  const leagueId=String(req.query.leagueId||'').trim();
+  if(!YAHOO_CLIENT_ID||!YAHOO_REDIRECT_URI) return res.status(500).send('Yahoo OAuth is not configured yet.');
+  if(!leagueId) return res.status(400).send('Missing Yahoo League ID.');
+  const oauthState=crypto.randomBytes(24).toString('hex');
+  oauthStates.set(oauthState,{leagueId,createdAt:Date.now()});
+  const url=new URL('https://api.login.yahoo.com/oauth2/request_auth');
+  url.searchParams.set('client_id',YAHOO_CLIENT_ID);
+  url.searchParams.set('redirect_uri',YAHOO_REDIRECT_URI);
+  url.searchParams.set('response_type','code');
+  url.searchParams.set('state',oauthState);
   res.redirect(url.toString());
 });
 
-app.get('/auth/yahoo/callback', async (req, res) => {
-  const { code, state } = req.query;
-  const saved = oauthStates.get(String(state || ''));
-
-  if (!code || !saved) {
-    return res.status(400).send('Yahoo authorization could not be validated.');
-  }
-  oauthStates.delete(String(state));
-
-  const { YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET, YAHOO_REDIRECT_URI } = process.env;
-  if (!YAHOO_CLIENT_ID || !YAHOO_CLIENT_SECRET || !YAHOO_REDIRECT_URI) {
-    return res.status(500).send('Yahoo OAuth server credentials are incomplete.');
-  }
-
-  try {
-    const basic = Buffer.from(`${YAHOO_CLIENT_ID}:${YAHOO_CLIENT_SECRET}`).toString('base64');
-    const body = new URLSearchParams({
-      client_id: YAHOO_CLIENT_ID,
-      client_secret: YAHOO_CLIENT_SECRET,
-      redirect_uri: YAHOO_REDIRECT_URI,
-      code: String(code),
-      grant_type: 'authorization_code'
+app.get('/auth/yahoo/callback', async (req,res)=>{
+  const {code,state:oauthState}=req.query;
+  const saved=oauthStates.get(String(oauthState||''));
+  if(!code||!saved) return res.status(400).send('Yahoo authorization could not be validated.');
+  oauthStates.delete(String(oauthState));
+  const {YAHOO_CLIENT_ID,YAHOO_CLIENT_SECRET,YAHOO_REDIRECT_URI}=process.env;
+  if(!YAHOO_CLIENT_ID||!YAHOO_CLIENT_SECRET||!YAHOO_REDIRECT_URI) return res.status(500).send('Yahoo OAuth server credentials are incomplete.');
+  try{
+    const basic=Buffer.from(`${YAHOO_CLIENT_ID}:${YAHOO_CLIENT_SECRET}`).toString('base64');
+    const body=new URLSearchParams({client_id:YAHOO_CLIENT_ID,client_secret:YAHOO_CLIENT_SECRET,
+      redirect_uri:YAHOO_REDIRECT_URI,code:String(code),grant_type:'authorization_code'});
+    const tokenResponse=await fetch('https://api.login.yahoo.com/oauth2/get_token',{
+      method:'POST',headers:{'Authorization':`Basic ${basic}`,'Content-Type':'application/x-www-form-urlencoded'},body
     });
-
-    const tokenResponse = await fetch('https://api.login.yahoo.com/oauth2/get_token', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${basic}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body
-    });
-
-    if (!tokenResponse.ok) {
-      return res.status(502).send('Yahoo token exchange failed.');
-    }
-
-    const tokens = await tokenResponse.json();
-
-    yahooConnection = {
-      connected: true,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresAt: Date.now() + ((tokens.expires_in || 3600) * 1000),
-      leagueId: saved.leagueId
-    };
-
-    res.redirect('/?yahoo=connected');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Yahoo connection failed.');
-  }
+    if(!tokenResponse.ok) return res.status(502).send('Yahoo token exchange failed.');
+    const tokens=await tokenResponse.json();
+    yahooConnection={connected:true,accessToken:tokens.access_token,refreshToken:tokens.refresh_token,
+      expiresAt:Date.now()+((tokens.expires_in||3600)*1000),leagueId:saved.leagueId};
+    res.redirect('/admin');
+  }catch(e){console.error(e);res.status(500).send('Yahoo connection failed.');}
 });
 
-app.get('/api/live-week', (req, res) => {
-  res.json({
-    source: yahooConnection.connected ? 'yahoo-pending-adapter' : 'demo',
-    weekFinalized: false,
-    weeklyHigh: { team: 'Shaun', score: 181.7 },
-    positionChallenge: {
-      week: 5,
-      slot: 'FLEX',
-      team: 'Vance',
-      player: 'Bijan Robinson',
-      actualPosition: 'RB',
-      score: 34.8
-    }
-  });
-});
+const LOGIN_HTML = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Commissioner Login</title>
+<style>
+body{margin:0;background:#06172d;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}
+.box{width:min(100%,420px);background:#09284b;border:1px solid #285f96;border-radius:18px;padding:22px}
+.icon{width:52px;height:52px;background:#003594;border:2px solid #ffd100;border-radius:15px;display:grid;place-items:center;font-size:28px;margin-bottom:14px}
+h1{font-size:24px;margin:0 0 5px}.sub{color:#b9c9da;font-size:13px}
+label{display:block;font-size:12px;font-weight:800;margin-top:18px}
+input{width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border-radius:11px;border:1px solid #4774a0;background:#061b32;color:#fff;font-size:16px}
+button{width:100%;margin-top:14px;padding:12px;border-radius:11px;background:#003594;color:#fff;border:1px solid #ffd100;font-weight:900;font-size:16px}
+.err{color:#ffe36a;font-size:12px;margin-top:10px}
+</style></head>
+<body><div class="box"><div class="icon">🏈</div><h1>Commissioner Admin</h1><div class="sub">Sign in to manage Auction League Hub.</div>
+<form method="POST" action="/admin/login"><label>Admin Password<input name="password" type="password" autocomplete="current-password" required></label>
+<button type="submit">Sign In</button></form><div class="err">__ERROR__</div></div></body></html>`;
 
-app.listen(PORT, () => {
-  console.log(`Auction League Hub running on http://localhost:${PORT}`);
-});
+app.listen(PORT,()=>console.log(`Auction League Hub running on port ${PORT}`));

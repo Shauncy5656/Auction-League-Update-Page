@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auction League Hub - Commissioner Admin</title>
+<style>
+:root{
+  --bg:#06172d;--panel:#09284b;--card:#0a294c;--line:#285f96;
+  --text:#fff;--muted:#b9c9da;--blue:#003594;--yellow:#ffd100;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#041225,#06172d);color:var(--text);
+font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+button,input,select{font:inherit}
+.header{background:#041225;border-bottom:1px solid #204f83;position:sticky;top:0;z-index:10}
+.header-in{max-width:1000px;margin:auto;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.icon{width:46px;height:46px;border-radius:14px;background:#003594;border:2px solid #ffd100;display:grid;place-items:center;font-size:25px}
+.title{font-weight:900;font-size:20px}.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.wrap{max-width:1000px;margin:auto;padding:18px 14px 70px}
+.card{background:linear-gradient(180deg,#0a315b,#082447);border:1px solid #285f96;border-radius:17px;padding:18px;margin-bottom:16px}
+.kicker{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
+h2{font-size:19px;margin:4px 0 14px}
+label{display:block;font-size:12px;font-weight:800;color:#d4e0ea;margin-top:10px}
+input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;border:1px solid #4774a0;background:#061b32;color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:900;cursor:pointer}
+.primary{background:#003594;color:#fff;border:1px solid #ffd100}.secondary{background:#0d355f;color:#fff;border:1px solid #5c7fa5}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.team-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #285f96}
+.team-row:last-child{border-bottom:0}.remove{background:transparent;color:#ffe36a;border:1px solid #ffd100;border-radius:9px;padding:7px 9px}
+.add-row{display:flex;gap:8px;margin-top:12px}.add-row input{margin:0}.status{font-size:12px;color:var(--muted);margin-top:9px}
+.logout{color:#ffd100;text-decoration:none;font-size:13px;font-weight:800}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.add-row{flex-direction:column}.add-row .btn{padding:11px}}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-in">
+    <div class="brand"><div class="icon">🏈</div><div><div class="title">Commissioner Admin</div><div class="sub">Auction League Hub</div></div></div>
+    <a class="logout" href="/admin/logout">Log out</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="card">
+    <div class="kicker">League Administration</div>
+    <h2>Current Teams</h2>
+    <div id="teamList"></div>
+    <div class="add-row">
+      <input id="newTeam" placeholder="Add another team">
+      <button class="btn primary" id="addTeam">Add Team</button>
+    </div>
+    <div class="status" id="teamStatus">Changes save to the server for this deployment.</div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Weekly Position Challenge</div>
+    <h2>Season Challenge Schedule</h2>
+    <div class="grid" id="scheduleGrid"></div>
+    <div class="actions"><button class="btn primary" id="saveSchedule">Save Schedule</button></div>
+    <div class="status" id="scheduleStatus"></div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Yahoo Live Data</div>
+    <h2>Yahoo Connection</h2>
+    <label>Yahoo League ID<input id="leagueId" placeholder="Enter league ID"></label>
+    <div class="actions">
+      <button class="btn primary" id="connectYahoo">Connect Yahoo</button>
+    </div>
+    <div class="status" id="yahooStatus">Yahoo Fantasy authorization is not active yet.</div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Week Control</div>
+    <h2>Finalize Weekly Winners</h2>
+    <div class="status">This control will eventually lock in the Weekly High Team Score and Position Challenge winner after Yahoo finalizes the fantasy week.</div>
+    <div class="actions"><button class="btn secondary" id="finalizeWeek">Finalize Current Week</button></div>
+    <div class="status" id="finalizeStatus"></div>
+  </div>
+</main>
+
+<script>
+const positions=['QB','RB','WR','TE','FLEX','K','DEF'];
+
+async function api(url, options={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json'},...options});
+  if(r.status===401){ window.location='/admin/login'; throw new Error('Unauthorized'); }
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function loadState(){
+  const state=await api('/api/admin/state');
+  renderTeams(state.teams || []);
+  renderSchedule(state.challengeSchedule || {});
+  if(state.yahoo && state.yahoo.connected){
+    document.getElementById('yahooStatus').textContent='Yahoo connected.';
+    document.getElementById('leagueId').value=state.yahoo.leagueId || '';
+  }
+}
+
+function renderTeams(teams){
+  const list=document.getElementById('teamList');
+  list.innerHTML='';
+  teams.forEach(team=>{
+    const row=document.createElement('div'); row.className='team-row';
+    row.innerHTML='<strong></strong><button class="remove">Remove</button>';
+    row.querySelector('strong').textContent=team;
+    row.querySelector('button').addEventListener('click', async()=>{
+      await api('/api/admin/teams',{method:'DELETE',body:JSON.stringify({team})});
+      loadState();
+    });
+    list.appendChild(row);
+  });
+}
+
+function renderSchedule(schedule){
+  const grid=document.getElementById('scheduleGrid'); grid.innerHTML='';
+  for(let w=1;w<=18;w++){
+    const label=document.createElement('label'); label.textContent='Week '+w;
+    const select=document.createElement('select'); select.dataset.week=w;
+    positions.forEach(p=>{
+      const o=document.createElement('option'); o.value=p; o.textContent=p;
+      if((schedule[w]||'FLEX')===p) o.selected=true;
+      select.appendChild(o);
+    });
+    label.appendChild(select); grid.appendChild(label);
+  }
+}
+
+document.getElementById('addTeam').addEventListener('click',async()=>{
+  const input=document.getElementById('newTeam'),team=input.value.trim();
+  if(!team)return;
+  await api('/api/admin/teams',{method:'POST',body:JSON.stringify({team})});
+  input.value=''; document.getElementById('teamStatus').textContent='Team added.';
+  loadState();
+});
+
+document.getElementById('saveSchedule').addEventListener('click',async()=>{
+  const schedule={};
+  document.querySelectorAll('#scheduleGrid select').forEach(s=>schedule[s.dataset.week]=s.value);
+  await api('/api/admin/schedule',{method:'PUT',body:JSON.stringify({schedule})});
+  document.getElementById('scheduleStatus').textContent='Challenge schedule saved.';
+});
+
+document.getElementById('connectYahoo').addEventListener('click',()=>{
+  const leagueId=document.getElementById('leagueId').value.trim();
+  if(!leagueId){document.getElementById('yahooStatus').textContent='Enter a league ID first.';return;}
+  window.location='/auth/yahoo?leagueId='+encodeURIComponent(leagueId);
+});
+
+document.getElementById('finalizeWeek').addEventListener('click',()=>{
+  document.getElementById('finalizeStatus').textContent='Finalization is disabled until live Yahoo scoring is connected.';
+});
+
+loadState().catch(e=>console.error(e));
+</script>
+</body>
+</html>
