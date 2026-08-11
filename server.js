@@ -89,44 +89,109 @@ app.put('/api/admin/schedule',requireAdmin,(req,res)=>{
 });
 
 app.get('/api/status',(req,res)=>res.json({
-  yahooConnected:yahooConnection.connected,leagueId:yahooConnection.leagueId,mode:yahooConnection.connected?'connected':'demo'
+  yahooConnected:yahooConnection.connected,
+  leagueId:yahooConnection.leagueId,
+  mode:yahooConnection.connected?'connected':'demo'
 }));
 
 app.get('/auth/yahoo', adminPage, (req,res)=>{
   const {YAHOO_CLIENT_ID,YAHOO_REDIRECT_URI}=process.env;
   const leagueId=String(req.query.leagueId||'').trim();
-  if(!YAHOO_CLIENT_ID||!YAHOO_REDIRECT_URI) return res.status(500).send('Yahoo OAuth is not configured yet.');
-  if(!leagueId) return res.status(400).send('Missing Yahoo League ID.');
+
+  if(!YAHOO_CLIENT_ID||!YAHOO_REDIRECT_URI) {
+    return res.status(500).send('Yahoo OAuth is not configured yet.');
+  }
+  if(!leagueId) {
+    return res.status(400).send('Missing Yahoo League ID.');
+  }
+
   const oauthState=crypto.randomBytes(24).toString('hex');
   oauthStates.set(oauthState,{leagueId,createdAt:Date.now()});
+
   const url=new URL('https://api.login.yahoo.com/oauth2/request_auth');
   url.searchParams.set('client_id',YAHOO_CLIENT_ID);
   url.searchParams.set('redirect_uri',YAHOO_REDIRECT_URI);
   url.searchParams.set('response_type','code');
   url.searchParams.set('state',oauthState);
+
   res.redirect(url.toString());
 });
 
 app.get('/auth/yahoo/callback', async (req,res)=>{
   const {code,state:oauthState}=req.query;
   const saved=oauthStates.get(String(oauthState||''));
-  if(!code||!saved) return res.status(400).send('Yahoo authorization could not be validated.');
+
+  if(!code||!saved) {
+    return res.status(400).send('Yahoo authorization could not be validated.');
+  }
+
   oauthStates.delete(String(oauthState));
-  const {YAHOO_CLIENT_ID,YAHOO_CLIENT_SECRET,YAHOO_REDIRECT_URI}=process.env;
-  if(!YAHOO_CLIENT_ID||!YAHOO_CLIENT_SECRET||!YAHOO_REDIRECT_URI) return res.status(500).send('Yahoo OAuth server credentials are incomplete.');
+
+  const {
+    YAHOO_CLIENT_ID,
+    YAHOO_CLIENT_SECRET,
+    YAHOO_REDIRECT_URI
+  }=process.env;
+
+  if(!YAHOO_CLIENT_ID||!YAHOO_CLIENT_SECRET||!YAHOO_REDIRECT_URI) {
+    return res.status(500).send('Yahoo OAuth server credentials are incomplete.');
+  }
+
   try{
-    const basic=Buffer.from(`${YAHOO_CLIENT_ID}:${YAHOO_CLIENT_SECRET}`).toString('base64');
-    const body=new URLSearchParams({client_id:YAHOO_CLIENT_ID,client_secret:YAHOO_CLIENT_SECRET,
-      redirect_uri:YAHOO_REDIRECT_URI,code:String(code),grant_type:'authorization_code'});
-    const tokenResponse=await fetch('https://api.login.yahoo.com/oauth2/get_token',{
-      method:'POST',headers:{'Authorization':`Basic ${basic}`,'Content-Type':'application/x-www-form-urlencoded'},body
+    const basic=Buffer
+      .from(`${YAHOO_CLIENT_ID}:${YAHOO_CLIENT_SECRET}`)
+      .toString('base64');
+
+    const body=new URLSearchParams({
+      client_id:YAHOO_CLIENT_ID,
+      client_secret:YAHOO_CLIENT_SECRET,
+      redirect_uri:YAHOO_REDIRECT_URI,
+      code:String(code),
+      grant_type:'authorization_code'
     });
-    if(!tokenResponse.ok) return res.status(502).send('Yahoo token exchange failed.');
+
+    const tokenResponse=await fetch(
+      'https://api.login.yahoo.com/oauth2/get_token',
+      {
+        method:'POST',
+        headers:{
+          'Authorization':`Basic ${basic}`,
+          'Content-Type':'application/x-www-form-urlencoded'
+        },
+        body
+      }
+    );
+
+    if(!tokenResponse.ok) {
+      const yahooError = await tokenResponse.text();
+      console.error('Yahoo token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        body: yahooError,
+        redirectUri: YAHOO_REDIRECT_URI,
+        clientIdSuffix: YAHOO_CLIENT_ID.slice(-6)
+      });
+      return res.status(502).send(
+        'Yahoo token exchange failed. Check Render logs for the Yahoo error response.'
+      );
+    }
+
     const tokens=await tokenResponse.json();
-    yahooConnection={connected:true,accessToken:tokens.access_token,refreshToken:tokens.refresh_token,
-      expiresAt:Date.now()+((tokens.expires_in||3600)*1000),leagueId:saved.leagueId};
+
+    yahooConnection={
+      connected:true,
+      accessToken:tokens.access_token,
+      refreshToken:tokens.refresh_token,
+      expiresAt:Date.now()+((tokens.expires_in||3600)*1000),
+      leagueId:saved.leagueId
+    };
+
+    console.log('Yahoo OAuth connected successfully for league:', saved.leagueId);
     res.redirect('/admin');
-  }catch(e){console.error(e);res.status(500).send('Yahoo connection failed.');}
+  }catch(e){
+    console.error('Yahoo OAuth callback exception:', e);
+    res.status(500).send('Yahoo connection failed.');
+  }
 });
 
 const LOGIN_HTML = `<!DOCTYPE html>
