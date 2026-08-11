@@ -19,7 +19,9 @@ const state = {
     9:'QB',10:'TE',11:'FLEX',12:'WR',13:'RB',14:'QB',15:'TE',16:'FLEX',17:'WR',18:'RB'
   },
   weeklyResults: {},
-  chatMessages: []
+  chatMessages: [],
+  waiverLimit: null,
+  waiverTransactions: []
 };
 
 let yahooConnection = {
@@ -75,6 +77,8 @@ app.get('/api/admin/state',requireAdmin,(req,res)=>{
     teams:state.teams,
     challengeSchedule:state.challengeSchedule,
     weeklyResults:state.weeklyResults,
+    waiverLimit:state.waiverLimit,
+    waiverTransactions:state.waiverTransactions,
     yahoo:{connected:yahooConnection.connected,leagueId:yahooConnection.leagueId}
   });
 });
@@ -152,6 +156,14 @@ function buildPublicState(){
     weeklyResults:state.weeklyResults,
     weeklyWins,
     positionWins,
+    waivers:{
+      limit:state.waiverLimit,
+      summary:buildWaiverSummary(),
+      transactions:[...state.waiverTransactions].sort((a,b)=>{
+        if(a.date===b.date) return String(b.createdAt).localeCompare(String(a.createdAt));
+        return b.date.localeCompare(a.date);
+      })
+    },
     latestWeek,
     latestResult,
     nextWeek
@@ -162,6 +174,82 @@ app.get('/api/public/state',(req,res)=>{
   res.json(buildPublicState());
 });
 
+
+
+app.put('/api/admin/waivers/settings',requireAdmin,(req,res)=>{
+  const value=req.body.limit;
+  if(value==='' || value===null || value===undefined){
+    state.waiverLimit=null;
+    return res.json({ok:true,waiverLimit:state.waiverLimit});
+  }
+  const limit=Number(value);
+  if(!Number.isInteger(limit) || limit<0) return res.status(400).send('Enter a valid season waiver limit.');
+  state.waiverLimit=limit;
+  res.json({ok:true,waiverLimit:state.waiverLimit});
+});
+
+app.post('/api/admin/waivers',requireAdmin,(req,res)=>{
+  const team=String(req.body.team||'').trim();
+  const player=String(req.body.player||'').trim();
+  const date=String(req.body.date||'').trim();
+  const cost=Number(req.body.cost);
+
+  if(!state.teams.includes(team)) return res.status(400).send('Choose a valid team.');
+  if(!player) return res.status(400).send('Enter the player picked up.');
+  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).send('Enter a valid pickup date.');
+  if(!Number.isFinite(cost) || cost<0) return res.status(400).send('Enter a valid pickup cost.');
+
+  const item={
+    id:crypto.randomBytes(8).toString('hex'),
+    team,
+    player,
+    cost:Math.round(cost*100)/100,
+    date,
+    createdAt:new Date().toISOString()
+  };
+  state.waiverTransactions.push(item);
+  res.json({ok:true,transaction:item});
+});
+
+app.delete('/api/admin/waivers/:id',requireAdmin,(req,res)=>{
+  const id=String(req.params.id||'');
+  const before=state.waiverTransactions.length;
+  state.waiverTransactions=state.waiverTransactions.filter(x=>x.id!==id);
+  if(state.waiverTransactions.length===before) return res.status(404).send('Waiver pickup not found.');
+  res.json({ok:true});
+});
+
+function buildWaiverSummary(){
+  const summary=Object.fromEntries(
+    state.teams.map(team=>[team,{pickups:0,totalCost:0,remaining:state.waiverLimit}])
+  );
+
+  state.waiverTransactions.forEach(item=>{
+    if(!summary[item.team]) return;
+    summary[item.team].pickups += 1;
+    summary[item.team].totalCost = Math.round((summary[item.team].totalCost + Number(item.cost||0))*100)/100;
+  });
+
+  state.teams.forEach(team=>{
+    summary[team].remaining = state.waiverLimit===null
+      ? null
+      : Math.max(0,state.waiverLimit-summary[team].pickups);
+  });
+
+  return summary;
+}
+
+app.get('/api/waivers',(req,res)=>{
+  const transactions=[...state.waiverTransactions].sort((a,b)=>{
+    if(a.date===b.date) return String(b.createdAt).localeCompare(String(a.createdAt));
+    return b.date.localeCompare(a.date);
+  });
+  res.json({
+    waiverLimit:state.waiverLimit,
+    summary:buildWaiverSummary(),
+    transactions
+  });
+});
 
 app.get('/api/chat',(req,res)=>{
   res.json({messages:state.chatMessages.slice(-100)});

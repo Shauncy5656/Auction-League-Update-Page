@@ -33,6 +33,13 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
 .add-row{display:flex;gap:8px;margin-top:12px}.add-row input{margin:0}.status{font-size:12px;color:var(--muted);margin-top:9px}
 .logout{color:#ffd100;text-decoration:none;font-size:13px;font-weight:800}
 @media(max-width:650px){.grid{grid-template-columns:1fr}.add-row{flex-direction:column}.add-row .btn{padding:11px}}
+
+.waiver-admin-row{display:grid;grid-template-columns:1.15fr 1.4fr .75fr auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #285f96}
+.waiver-admin-row:last-child{border-bottom:0}
+.waiver-admin-name{font-weight:900}.waiver-admin-player{color:#d4e0ea}.waiver-admin-meta{font-size:11px;color:var(--muted)}
+.waiver-delete{background:transparent;color:#ffe36a;border:1px solid #ffd100;border-radius:8px;padding:6px 8px;font-weight:800}
+@media(max-width:650px){.waiver-admin-row{grid-template-columns:1fr auto}.waiver-admin-player{grid-column:1/2}.waiver-admin-meta{grid-column:1/2}}
+
 </style>
 </head>
 <body>
@@ -55,6 +62,46 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
     <div class="status" id="teamStatus">Changes save to the server for this deployment.</div>
   </div>
 
+
+
+  <div class="card">
+    <div class="kicker">Waiver Administration</div>
+    <h2>Waiver Pickup Tracker</h2>
+    <div class="status" style="margin-bottom:12px">Add each waiver pickup once. The public summary totals and waiver history update automatically.</div>
+
+    <div class="grid">
+      <label>Season Pickup Limit Per Team
+        <input id="waiverLimit" inputmode="numeric" placeholder="e.g. 10">
+      </label>
+      <div style="display:flex;align-items:end">
+        <button class="btn secondary" id="saveWaiverLimit" style="width:100%">Save Pickup Limit</button>
+      </div>
+    </div>
+
+    <div style="height:1px;background:#285f96;margin:18px 0"></div>
+
+    <div class="grid">
+      <label>Team
+        <select id="waiverTeam"></select>
+      </label>
+      <label>Player Picked Up
+        <input id="waiverPlayer" placeholder="Player name">
+      </label>
+      <label>Pickup Cost
+        <input id="waiverCost" inputmode="decimal" placeholder="e.g. 5.00">
+      </label>
+      <label>Date
+        <input id="waiverDate" type="date">
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="addWaiverPickup">Add Waiver Pickup</button>
+    </div>
+    <div class="status" id="waiverStatus"></div>
+
+    <div id="waiverAdminHistory" style="margin-top:16px"></div>
+  </div>
 
   <div class="card">
     <div class="kicker">Manual Weekly Results</div>
@@ -132,7 +179,7 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
 
 <script>
 const positions=['QB','RB','WR','TE','FLEX','K','DEF'];
-let adminState={teams:[],challengeSchedule:{},weeklyResults:{}};
+let adminState={teams:[],challengeSchedule:{},weeklyResults:{},waiverLimit:null,waiverTransactions:[]};
 
 async function api(url, options={}){
   const r=await fetch(url,{headers:{'Content-Type':'application/json'},...options});
@@ -148,6 +195,7 @@ async function loadState(){
   renderSchedule(state.challengeSchedule || {});
   renderResultControls();
   loadSelectedWeekResult();
+  renderWaiverAdmin();
   if(state.yahoo && state.yahoo.connected){
     document.getElementById('yahooStatus').textContent='Yahoo connected.';
     document.getElementById('leagueId').value=state.yahoo.leagueId || '';
@@ -182,6 +230,104 @@ function renderSchedule(schedule){
     label.appendChild(select); grid.appendChild(label);
   }
 }
+
+
+
+function renderWaiverAdmin(){
+  const limit=document.getElementById('waiverLimit');
+  if(limit) limit.value=adminState.waiverLimit ?? '';
+
+  const teamSelect=document.getElementById('waiverTeam');
+  if(teamSelect){
+    const current=teamSelect.value;
+    teamSelect.innerHTML='<option value="">Select team</option>';
+    (adminState.teams||[]).forEach(team=>{
+      const o=document.createElement('option'); o.value=team; o.textContent=team;
+      teamSelect.appendChild(o);
+    });
+    if((adminState.teams||[]).includes(current)) teamSelect.value=current;
+  }
+
+  const dateInput=document.getElementById('waiverDate');
+  if(dateInput && !dateInput.value){
+    const d=new Date();
+    const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);
+    dateInput.value=local.toISOString().slice(0,10);
+  }
+
+  const history=document.getElementById('waiverAdminHistory');
+  if(history){
+    const tx=[...(adminState.waiverTransactions||[])].sort((a,b)=>{
+      if(a.date===b.date) return String(b.createdAt).localeCompare(String(a.createdAt));
+      return b.date.localeCompare(a.date);
+    });
+
+    if(!tx.length){
+      history.innerHTML='<div class="status">No waiver pickups entered yet.</div>';
+    }else{
+      history.innerHTML=tx.map(item=>`
+        <div class="waiver-admin-row">
+          <div>
+            <div class="waiver-admin-name"></div>
+            <div class="waiver-admin-meta">${item.date}</div>
+          </div>
+          <div class="waiver-admin-player"></div>
+          <div style="font-weight:900">$${Number(item.cost||0).toFixed(2)}</div>
+          <button class="waiver-delete" data-waiver-id="${item.id}">Delete</button>
+        </div>
+      `).join('');
+
+      [...history.querySelectorAll('.waiver-admin-row')].forEach((row,i)=>{
+        row.querySelector('.waiver-admin-name').textContent=tx[i].team;
+        row.querySelector('.waiver-admin-player').textContent=tx[i].player;
+      });
+
+      history.querySelectorAll('.waiver-delete').forEach(btn=>{
+        btn.addEventListener('click',async()=>{
+          if(!confirm('Delete this waiver pickup?')) return;
+          await api('/api/admin/waivers/'+encodeURIComponent(btn.dataset.waiverId),{method:'DELETE'});
+          await loadState();
+          document.getElementById('waiverStatus').textContent='Waiver pickup deleted. Totals recalculated.';
+        });
+      });
+    }
+  }
+}
+
+document.getElementById('saveWaiverLimit').addEventListener('click',async()=>{
+  try{
+    const limit=document.getElementById('waiverLimit').value.trim();
+    await api('/api/admin/waivers/settings',{
+      method:'PUT',
+      body:JSON.stringify({limit})
+    });
+    document.getElementById('waiverStatus').textContent='Season waiver limit saved.';
+    await loadState();
+  }catch(e){
+    document.getElementById('waiverStatus').textContent=e.message;
+  }
+});
+
+document.getElementById('addWaiverPickup').addEventListener('click',async()=>{
+  try{
+    const payload={
+      team:document.getElementById('waiverTeam').value,
+      player:document.getElementById('waiverPlayer').value.trim(),
+      cost:document.getElementById('waiverCost').value,
+      date:document.getElementById('waiverDate').value
+    };
+    await api('/api/admin/waivers',{
+      method:'POST',
+      body:JSON.stringify(payload)
+    });
+    document.getElementById('waiverPlayer').value='';
+    document.getElementById('waiverCost').value='';
+    document.getElementById('waiverStatus').textContent='Waiver pickup added. Public totals updated.';
+    await loadState();
+  }catch(e){
+    document.getElementById('waiverStatus').textContent=e.message;
+  }
+});
 
 
 function fillTeamSelect(select, teams){

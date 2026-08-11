@@ -215,7 +215,7 @@
       border-top:1px solid #1a394f;
       padding:8px 8px calc(8px + env(safe-area-inset-bottom));
     }
-    .mobile-nav-inner{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .mobile-nav-inner{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
     .mobile-nav button{
       border:0;background:transparent;color:#aebdca;
       padding:9px 4px;border-radius:10px;font-size:12px;font-weight:800;
@@ -586,6 +586,85 @@
       border:1px solid #5d84ab;
     }
 
+
+    .waiver-summary-table{
+      margin-top:14px;
+      border:1px solid #285f96;
+      border-radius:14px;
+      overflow:hidden;
+    }
+    .waiver-summary-head,.waiver-summary-row{
+      display:grid;
+      grid-template-columns:1.35fr .72fr .82fr .72fr;
+      align-items:center;
+      gap:6px;
+      padding:10px 9px;
+    }
+    .waiver-summary-head{
+      background:#0b3b70;
+      color:#dbe8f5;
+      font-size:9px;
+      text-transform:uppercase;
+      letter-spacing:.045em;
+      font-weight:900;
+    }
+    .waiver-summary-row{
+      border-top:1px solid rgba(40,95,150,.55);
+      background:#071f3b;
+      font-size:12px;
+    }
+    .waiver-summary-row:first-of-type{border-top:0}
+    .waiver-team{font-weight:900;color:#fff}
+    .waiver-num{text-align:center;font-weight:900}
+    .waiver-money{text-align:right;font-weight:900;color:#ffd100}
+    .waiver-limit-note{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:11px;
+      background:#071f3b;
+      border:1px solid #285f96;
+      color:#b9c9da;
+      font-size:12px;
+      font-weight:800;
+    }
+    .waiver-history{
+      margin-top:14px;
+      display:grid;
+      gap:10px;
+    }
+    .waiver-history-row{
+      background:#071f3b;
+      border:1px solid #285f96;
+      border-radius:13px;
+      padding:12px;
+    }
+    .waiver-history-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .waiver-history-team{font-weight:900;font-size:15px}
+    .waiver-history-date{font-size:11px;color:#9fb2c4;white-space:nowrap}
+    .waiver-history-player{font-size:14px;margin-top:4px;color:#dbe8f5}
+    .waiver-history-cost{font-size:18px;font-weight:900;color:#ffd100;margin-top:7px}
+    .waiver-empty{
+      text-align:center;
+      color:#9fb2c4;
+      padding:22px 8px;
+      border:1px dashed #285f96;
+      border-radius:12px;
+    }
+    @media(max-width:430px){
+      .waiver-summary-head,.waiver-summary-row{
+        grid-template-columns:1.25fr .7fr .82fr .68fr;
+        font-size:10px;
+        gap:3px;
+        padding:9px 7px;
+      }
+      .waiver-summary-head{font-size:8px}
+    }
+
 </style>
 </head>
 <body>
@@ -603,6 +682,7 @@
         <button class="nav-btn active" data-panel="home">Home</button>
         <button class="nav-btn" data-panel="winners">Winners</button>
         <button class="nav-btn" data-panel="challenge">Challenge</button>
+        <button class="nav-btn" data-panel="waivers">Waivers</button>
         <button class="nav-btn" data-panel="chat">Chat</button>
       </nav>
     </div>
@@ -705,6 +785,17 @@
           </div>
         </div>
       </div>
+
+      <div class="card waiver-summary-card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Waiver Pickup Totals</div>
+            <div class="small" style="margin-top:4px">Running season totals for every team.</div>
+          </div>
+        </div>
+        <div class="waiver-summary-table" id="waiverSummaryTable"></div>
+      </div>
+
     </section>
 
     <section id="winners" class="panel">
@@ -772,6 +863,24 @@
       </div>
     </section>
 
+
+    <section id="waivers" class="panel">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Waiver Pickups</div>
+            <div class="small" style="margin-top:4px">Complete season transaction history</div>
+          </div>
+        </div>
+
+        <div class="waiver-limit-note" id="waiverLimitNote">Season pickup limit: Not set</div>
+
+        <div class="waiver-history" id="waiverHistory">
+          <div class="waiver-empty">No waiver pickups entered yet.</div>
+        </div>
+      </div>
+    </section>
+
     <section id="chat" class="panel">
       <div class="card">
         <div class="section-head">
@@ -813,6 +922,7 @@
       <button class="mobile-tab active" data-panel="home">Home</button>
       <button class="mobile-tab" data-panel="winners">Winners</button>
       <button class="mobile-tab" data-panel="challenge">Challenge</button>
+      <button class="mobile-tab" data-panel="waivers">Waivers</button>
       <button class="mobile-tab" data-panel="chat">Chat</button>
     </div>
   </nav>
@@ -1120,6 +1230,76 @@
   }
 
 
+
+  function money(value){
+    const n=Number(value||0);
+    return '$'+n.toFixed(2);
+  }
+
+  function formatPickupDate(value){
+    if(!value) return '';
+    const parts=value.split('-');
+    if(parts.length!==3) return value;
+    return `${Number(parts[1])}/${Number(parts[2])}/${parts[0]}`;
+  }
+
+  function renderWaivers(waivers){
+    const summary=(waivers && waivers.summary) || {};
+    const limit=waivers ? waivers.limit : null;
+    const summaryBox=document.getElementById('waiverSummaryTable');
+
+    if(summaryBox){
+      summaryBox.innerHTML=`
+        <div class="waiver-summary-head">
+          <div>Team</div><div style="text-align:center">Pickups</div>
+          <div style="text-align:right">Total Cost</div><div style="text-align:center">Left</div>
+        </div>
+        ${teams.map(team=>{
+          const info=summary[team]||{pickups:0,totalCost:0,remaining:limit};
+          return `<div class="waiver-summary-row">
+            <div class="waiver-team"></div>
+            <div class="waiver-num">${Number(info.pickups||0)}</div>
+            <div class="waiver-money">${money(info.totalCost)}</div>
+            <div class="waiver-num">${info.remaining===null || info.remaining===undefined ? '—' : Number(info.remaining)}</div>
+          </div>`;
+        }).join('')}
+      `;
+      [...summaryBox.querySelectorAll('.waiver-summary-row')].forEach((row,i)=>{
+        row.querySelector('.waiver-team').textContent=teams[i];
+      });
+    }
+
+    const limitNote=document.getElementById('waiverLimitNote');
+    if(limitNote){
+      limitNote.textContent=limit===null || limit===undefined
+        ? 'Season pickup limit: Not set'
+        : `Season pickup limit: ${limit} per team`;
+    }
+
+    const history=document.getElementById('waiverHistory');
+    if(history){
+      const tx=(waivers && waivers.transactions) || [];
+      if(!tx.length){
+        history.innerHTML='<div class="waiver-empty">No waiver pickups entered yet.</div>';
+      }else{
+        history.innerHTML=tx.map(item=>`
+          <div class="waiver-history-row">
+            <div class="waiver-history-top">
+              <div class="waiver-history-team"></div>
+              <div class="waiver-history-date">${formatPickupDate(item.date)}</div>
+            </div>
+            <div class="waiver-history-player"></div>
+            <div class="waiver-history-cost">${money(item.cost)}</div>
+          </div>
+        `).join('');
+        [...history.querySelectorAll('.waiver-history-row')].forEach((row,i)=>{
+          row.querySelector('.waiver-history-team').textContent=tx[i].team;
+          row.querySelector('.waiver-history-player').textContent=tx[i].player;
+        });
+      }
+    }
+  }
+
   async function loadPublicLeagueState(){
     try{
       const r=await fetch('/api/public/state',{cache:'no-store'});
@@ -1171,6 +1351,7 @@
 
       renderSeasonWins();
       renderTeams();
+      renderWaivers(data.waivers||{});
       const savedIdentity=getChatIdentity();
       if(savedIdentity && !teams.includes(savedIdentity)){
         clearChatIdentityValue();
