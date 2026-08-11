@@ -17,7 +17,8 @@ const state = {
   challengeSchedule: {
     1:'WR',2:'QB',3:'RB',4:'TE',5:'FLEX',6:'WR',7:'DEF',8:'RB',
     9:'QB',10:'TE',11:'FLEX',12:'WR',13:'RB',14:'QB',15:'TE',16:'FLEX',17:'WR',18:'RB'
-  }
+  },
+  weeklyResults: {}
 };
 
 let yahooConnection = {
@@ -69,8 +70,12 @@ app.get('/admin/logout',(req,res)=>{
 app.get('/admin',adminPage,(req,res)=>res.sendFile(path.join(__dirname,'admin.html')));
 
 app.get('/api/admin/state',requireAdmin,(req,res)=>{
-  res.json({teams:state.teams,challengeSchedule:state.challengeSchedule,
-    yahoo:{connected:yahooConnection.connected,leagueId:yahooConnection.leagueId}});
+  res.json({
+    teams:state.teams,
+    challengeSchedule:state.challengeSchedule,
+    weeklyResults:state.weeklyResults,
+    yahoo:{connected:yahooConnection.connected,leagueId:yahooConnection.leagueId}
+  });
 });
 app.post('/api/admin/teams',requireAdmin,(req,res)=>{
   const team=String(req.body.team||'').trim();
@@ -86,6 +91,74 @@ app.delete('/api/admin/teams',requireAdmin,(req,res)=>{
 app.put('/api/admin/schedule',requireAdmin,(req,res)=>{
   state.challengeSchedule=req.body.schedule||state.challengeSchedule;
   res.json({challengeSchedule:state.challengeSchedule});
+});
+
+app.put('/api/admin/results/:week',requireAdmin,(req,res)=>{
+  const week=Number(req.params.week);
+  if(!Number.isInteger(week)||week<1||week>18) return res.status(400).send('Invalid week.');
+
+  const weeklyTeam=String(req.body.weeklyTeam||'').trim();
+  const weeklyScore=Number(req.body.weeklyScore);
+  const positionTeam=String(req.body.positionTeam||'').trim();
+  const positionPlayer=String(req.body.positionPlayer||'').trim();
+  const positionScore=Number(req.body.positionScore);
+  const actualPosition=String(req.body.actualPosition||'').trim();
+
+  if(!state.teams.includes(weeklyTeam)) return res.status(400).send('Choose a valid weekly high team winner.');
+  if(!Number.isFinite(weeklyScore)) return res.status(400).send('Enter a valid weekly high team score.');
+  if(!state.teams.includes(positionTeam)) return res.status(400).send('Choose a valid position challenge team winner.');
+  if(!positionPlayer) return res.status(400).send('Enter the position challenge player name.');
+  if(!Number.isFinite(positionScore)) return res.status(400).send('Enter a valid position challenge score.');
+
+  state.weeklyResults[week]={
+    week,
+    position:state.challengeSchedule[week]||'FLEX',
+    weeklyTeam,
+    weeklyScore,
+    positionTeam,
+    positionPlayer,
+    positionScore,
+    actualPosition,
+    updatedAt:new Date().toISOString()
+  };
+
+  res.json({ok:true,result:state.weeklyResults[week]});
+});
+
+app.delete('/api/admin/results/:week',requireAdmin,(req,res)=>{
+  const week=Number(req.params.week);
+  delete state.weeklyResults[week];
+  res.json({ok:true});
+});
+
+function buildPublicState(){
+  const weeklyWins=Object.fromEntries(state.teams.map(t=>[t,0]));
+  const positionWins=Object.fromEntries(state.teams.map(t=>[t,0]));
+
+  Object.values(state.weeklyResults).forEach(r=>{
+    if(r && weeklyWins[r.weeklyTeam] !== undefined) weeklyWins[r.weeklyTeam] += 1;
+    if(r && positionWins[r.positionTeam] !== undefined) positionWins[r.positionTeam] += 1;
+  });
+
+  const completedWeeks=Object.keys(state.weeklyResults).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  const latestWeek=completedWeeks.length ? completedWeeks[completedWeeks.length-1] : null;
+  const latestResult=latestWeek ? state.weeklyResults[latestWeek] : null;
+  const nextWeek=latestWeek && latestWeek<18 ? latestWeek+1 : (latestWeek ? null : 1);
+
+  return {
+    teams:state.teams,
+    challengeSchedule:state.challengeSchedule,
+    weeklyResults:state.weeklyResults,
+    weeklyWins,
+    positionWins,
+    latestWeek,
+    latestResult,
+    nextWeek
+  };
+}
+
+app.get('/api/public/state',(req,res)=>{
+  res.json(buildPublicState());
 });
 
 app.get('/api/status',(req,res)=>res.json({

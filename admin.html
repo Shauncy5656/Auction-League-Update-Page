@@ -55,6 +55,49 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
     <div class="status" id="teamStatus">Changes save to the server for this deployment.</div>
   </div>
 
+
+  <div class="card">
+    <div class="kicker">Manual Weekly Results</div>
+    <h2>Enter Weekly Winners</h2>
+    <div class="status" style="margin-bottom:12px">Enter the final Yahoo numbers once the fantasy week is complete. Saving a week updates the public site and running win totals automatically.</div>
+
+    <div class="grid">
+      <label>Week
+        <select id="resultWeek"></select>
+      </label>
+      <label>Position Challenge
+        <input id="resultPosition" readonly>
+      </label>
+      <label>Weekly High Team Winner
+        <select id="weeklyTeam"></select>
+      </label>
+      <label>Weekly High Team Score
+        <input id="weeklyScore" inputmode="decimal" placeholder="e.g. 181.7">
+      </label>
+      <label>Position Winner Team
+        <select id="positionTeam"></select>
+      </label>
+      <label>Winning Player
+        <input id="positionPlayer" placeholder="e.g. Bijan Robinson">
+      </label>
+      <label>Player Actual Position
+        <select id="actualPosition">
+          <option value="">Optional</option>
+          <option>QB</option><option>RB</option><option>WR</option><option>TE</option><option>K</option><option>DEF</option>
+        </select>
+      </label>
+      <label>Position Winner Score
+        <input id="positionScore" inputmode="decimal" placeholder="e.g. 34.8">
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="saveResult">Save Weekly Results</button>
+      <button class="btn secondary" id="clearResult">Clear This Week</button>
+    </div>
+    <div class="status" id="resultStatus"></div>
+  </div>
+
   <div class="card">
     <div class="kicker">Weekly Position Challenge</div>
     <h2>Season Challenge Schedule</h2>
@@ -64,26 +107,21 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
   </div>
 
   <div class="card">
-    <div class="kicker">Yahoo Live Data</div>
-    <h2>Yahoo Connection</h2>
+    <div class="kicker">Optional Future Automation</div>
+    <h2>Yahoo Connection (Optional)</h2>
     <label>Yahoo League ID<input id="leagueId" placeholder="Enter league ID"></label>
     <div class="actions">
       <button class="btn primary" id="connectYahoo">Connect Yahoo</button>
     </div>
-    <div class="status" id="yahooStatus">Yahoo Fantasy authorization is not active yet.</div>
+    <div class="status" id="yahooStatus">Manual entry is now the primary scoring method. Yahoo can be revisited later.</div>
   </div>
 
-  <div class="card">
-    <div class="kicker">Week Control</div>
-    <h2>Finalize Weekly Winners</h2>
-    <div class="status">This control will eventually lock in the Weekly High Team Score and Position Challenge winner after Yahoo finalizes the fantasy week.</div>
-    <div class="actions"><button class="btn secondary" id="finalizeWeek">Finalize Current Week</button></div>
-    <div class="status" id="finalizeStatus"></div>
-  </div>
+
 </main>
 
 <script>
 const positions=['QB','RB','WR','TE','FLEX','K','DEF'];
+let adminState={teams:[],challengeSchedule:{},weeklyResults:{}};
 
 async function api(url, options={}){
   const r=await fetch(url,{headers:{'Content-Type':'application/json'},...options});
@@ -94,8 +132,11 @@ async function api(url, options={}){
 
 async function loadState(){
   const state=await api('/api/admin/state');
+  adminState=state;
   renderTeams(state.teams || []);
   renderSchedule(state.challengeSchedule || {});
+  renderResultControls();
+  loadSelectedWeekResult();
   if(state.yahoo && state.yahoo.connected){
     document.getElementById('yahooStatus').textContent='Yahoo connected.';
     document.getElementById('leagueId').value=state.yahoo.leagueId || '';
@@ -131,6 +172,78 @@ function renderSchedule(schedule){
   }
 }
 
+
+function fillTeamSelect(select, teams){
+  const current=select.value;
+  select.innerHTML='<option value="">Select team</option>';
+  teams.forEach(team=>{
+    const o=document.createElement('option'); o.value=team; o.textContent=team;
+    select.appendChild(o);
+  });
+  if(teams.includes(current)) select.value=current;
+}
+
+function renderResultControls(){
+  const weekSelect=document.getElementById('resultWeek');
+  if(!weekSelect.options.length){
+    for(let w=1;w<=18;w++){
+      const o=document.createElement('option'); o.value=w; o.textContent='Week '+w;
+      weekSelect.appendChild(o);
+    }
+  }
+  fillTeamSelect(document.getElementById('weeklyTeam'), adminState.teams || []);
+  fillTeamSelect(document.getElementById('positionTeam'), adminState.teams || []);
+  updateResultPosition();
+}
+
+function updateResultPosition(){
+  const week=Number(document.getElementById('resultWeek').value || 1);
+  document.getElementById('resultPosition').value=(adminState.challengeSchedule||{})[week] || 'FLEX';
+}
+
+function loadSelectedWeekResult(){
+  const week=Number(document.getElementById('resultWeek').value || 1);
+  const r=(adminState.weeklyResults||{})[week] || (adminState.weeklyResults||{})[String(week)];
+  updateResultPosition();
+
+  document.getElementById('weeklyTeam').value=r?.weeklyTeam || '';
+  document.getElementById('weeklyScore').value=r?.weeklyScore ?? '';
+  document.getElementById('positionTeam').value=r?.positionTeam || '';
+  document.getElementById('positionPlayer').value=r?.positionPlayer || '';
+  document.getElementById('actualPosition').value=r?.actualPosition || '';
+  document.getElementById('positionScore').value=r?.positionScore ?? '';
+  document.getElementById('resultStatus').textContent=r ? 'Saved results loaded for Week '+week+'.' : 'No results saved for Week '+week+'.';
+}
+
+document.getElementById('resultWeek').addEventListener('change',loadSelectedWeekResult);
+
+document.getElementById('saveResult').addEventListener('click',async()=>{
+  const week=Number(document.getElementById('resultWeek').value);
+  const payload={
+    weeklyTeam:document.getElementById('weeklyTeam').value,
+    weeklyScore:document.getElementById('weeklyScore').value,
+    positionTeam:document.getElementById('positionTeam').value,
+    positionPlayer:document.getElementById('positionPlayer').value.trim(),
+    actualPosition:document.getElementById('actualPosition').value,
+    positionScore:document.getElementById('positionScore').value
+  };
+  try{
+    await api('/api/admin/results/'+week,{method:'PUT',body:JSON.stringify(payload)});
+    document.getElementById('resultStatus').textContent='Week '+week+' saved. Public totals updated.';
+    await loadState();
+  }catch(e){
+    document.getElementById('resultStatus').textContent=e.message;
+  }
+});
+
+document.getElementById('clearResult').addEventListener('click',async()=>{
+  const week=Number(document.getElementById('resultWeek').value);
+  if(!confirm('Clear the saved results for Week '+week+'?')) return;
+  await api('/api/admin/results/'+week,{method:'DELETE'});
+  await loadState();
+  document.getElementById('resultStatus').textContent='Week '+week+' results cleared.';
+});
+
 document.getElementById('addTeam').addEventListener('click',async()=>{
   const input=document.getElementById('newTeam'),team=input.value.trim();
   if(!team)return;
@@ -152,9 +265,6 @@ document.getElementById('connectYahoo').addEventListener('click',()=>{
   window.location='/auth/yahoo?leagueId='+encodeURIComponent(leagueId);
 });
 
-document.getElementById('finalizeWeek').addEventListener('click',()=>{
-  document.getElementById('finalizeStatus').textContent='Finalization is disabled until live Yahoo scoring is connected.';
-});
 
 loadState().catch(e=>console.error(e));
 </script>
