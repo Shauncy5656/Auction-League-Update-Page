@@ -98,6 +98,12 @@ app.put('/api/admin/schedule',requireAdmin,(req,res)=>{
   res.json({challengeSchedule:state.challengeSchedule});
 });
 
+
+app.delete('/api/admin/results',requireAdmin,(req,res)=>{
+  state.weeklyResults={};
+  res.json({ok:true,weeklyResults:state.weeklyResults});
+});
+
 app.put('/api/admin/results/:week',requireAdmin,(req,res)=>{
   const week=Number(req.params.week);
   if(!Number.isInteger(week)||week<1||week>18) return res.status(400).send('Invalid week.');

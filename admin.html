@@ -145,6 +145,17 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
     <div class="status" id="resultStatus"></div>
   </div>
 
+
+  <div class="card">
+    <div class="kicker">Season Reset</div>
+    <h2>Reset Weekly Winner Totals</h2>
+    <div class="status">Clears all saved weekly winner results and returns every team to 0 wins. This does not delete waiver pickups or chat.</div>
+    <div class="actions">
+      <button class="btn secondary" id="resetWeeklyResults">Reset All Winner Totals to 0</button>
+    </div>
+    <div class="status" id="resetWeeklyStatus"></div>
+  </div>
+
   <div class="card">
     <div class="kicker">Weekly Position Challenge</div>
     <h2>Season Challenge Schedule</h2>
@@ -189,7 +200,7 @@ async function api(url, options={}){
 }
 
 async function loadState(){
-  const state=await api('/api/admin/state');
+  const state=await api('/api/admin/state?ts='+Date.now());
   adminState=state;
   renderTeams(state.teams || []);
   renderSchedule(state.challengeSchedule || {});
@@ -423,6 +434,19 @@ document.getElementById('connectYahoo').addEventListener('click',()=>{
   window.location='/auth/yahoo?leagueId='+encodeURIComponent(leagueId);
 });
 
+
+
+document.getElementById('resetWeeklyResults').addEventListener('click',async()=>{
+  if(!confirm('Reset ALL weekly winner results and return every team to 0 wins?')) return;
+  try{
+    await api('/api/admin/results',{method:'DELETE'});
+    await loadState();
+    document.getElementById('resetWeeklyStatus').textContent='All weekly winner totals reset to 0.';
+    document.getElementById('resultStatus').textContent='Weekly results cleared.';
+  }catch(e){
+    document.getElementById('resetWeeklyStatus').textContent=e.message;
+  }
+});
 
 document.getElementById('clearChat').addEventListener('click',async()=>{
   if(!confirm('Clear all league chat messages?')) return;

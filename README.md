@@ -1,14 +1,17 @@
-# Auction League Hub — Version 20.7 Waiver Limit Sync Fix
+# Auction League Hub — Version 20.8 Shared Data Fix
 
-Fixes the issue where the Commissioner Admin could save a waiver pickup limit but the public Waivers page still displayed "Not set".
+Major data-flow cleanup.
 
-Changes:
-- Adds a dedicated public waiver-state endpoint.
-- Public Waivers summary refreshes directly from that endpoint every 10 seconds.
-- Adds cache-busting to public state requests.
-- Admin confirms the exact saved limit after Save Pickup Limit.
-- Keeps Version 20.6 Waiver Tracker design and all Version 20.5 chat fixes.
+Fixes:
+- Removes the hard-coded sample standings from the Winners tab.
+- All league teams now display starting at 0 wins.
+- Total Points, Position Challenge, and Combined standings are rendered from the same server data used by Commissioner Admin.
+- Winners and Waivers refresh when their tabs are opened.
+- Public shared data refreshes when the browser/app becomes active again.
+- Adds Commissioner Admin control: Reset All Winner Totals to 0.
+- Reset clears weekly winner results only; waiver pickups and chat stay intact.
+- Keeps direct waiver-limit refresh and automatic waiver totals.
 
-Important:
-Current results, waiver data, and chat are still stored in Render server memory.
-Persistent storage remains the next recommended infrastructure upgrade.
+Important architecture note:
+Current weekly results, waiver data, and chat are still held in the running Render process.
+A deployment/restart can reset them. Persistent storage should be added before real season data is entered.

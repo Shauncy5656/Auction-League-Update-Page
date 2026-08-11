@@ -815,28 +815,22 @@
 
         <div id="total" class="subpanel">
           <table>
-            <tr><th>Rank</th><th>Team</th><th>Wins</th></tr>
-            <tr><td>1</td><td>Shaun</td><td><strong>2</strong></td></tr>
-            <tr><td>2</td><td>Keith</td><td>1</td></tr>
-            <tr><td>2</td><td>Brandon</td><td>1</td></tr>
+            <thead><tr><th>Rank</th><th>Team</th><th>Wins</th></tr></thead>
+            <tbody id="winnerTotalBody"></tbody>
           </table>
         </div>
 
         <div id="position" class="subpanel" style="display:none">
           <table>
-            <tr><th>Rank</th><th>Team</th><th>Wins</th></tr>
-            <tr><td>1</td><td>Keith</td><td><strong>2</strong></td></tr>
-            <tr><td>2</td><td>Shaun</td><td>1</td></tr>
-            <tr><td>2</td><td>Nate</td><td>1</td></tr>
+            <thead><tr><th>Rank</th><th>Team</th><th>Wins</th></tr></thead>
+            <tbody id="winnerPositionBody"></tbody>
           </table>
         </div>
 
         <div id="combined" class="subpanel" style="display:none">
           <table>
-            <tr><th>Rank</th><th>Team</th><th>Total</th><th>Position</th><th>Combined</th></tr>
-            <tr><td>1</td><td>Shaun</td><td>2</td><td>1</td><td><strong>3</strong></td></tr>
-            <tr><td>1</td><td>Keith</td><td>1</td><td>2</td><td><strong>3</strong></td></tr>
-            <tr><td>3</td><td>Brandon</td><td>1</td><td>0</td><td>1</td></tr>
+            <thead><tr><th>Rank</th><th>Team</th><th>Total</th><th>Position</th><th>Combined</th></tr></thead>
+            <tbody id="winnerCombinedBody"></tbody>
           </table>
         </div>
       </div>
@@ -994,6 +988,18 @@
     document.querySelectorAll('[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===name));
     window.scrollTo({top:0,behavior:'smooth'});
   }
+
+
+  function refreshSharedLeagueData(){
+    loadPublicLeagueState();
+    loadWaiverState();
+  }
+
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden) refreshSharedLeagueData();
+  });
+
+  window.addEventListener('pageshow',()=>refreshSharedLeagueData());
 
   document.querySelectorAll('[data-panel]').forEach(btn=>{
     btn.addEventListener('click',()=>switchPanel(btn.dataset.panel));
@@ -1231,6 +1237,62 @@
 
 
 
+
+  function rankedRows(data){
+    const sorted=[...data].sort((a,b)=>{
+      if(b.wins!==a.wins) return b.wins-a.wins;
+      return a.team.localeCompare(b.team);
+    });
+    let priorWins=null, priorRank=0;
+    return sorted.map((item,i)=>{
+      const rank=item.wins===priorWins ? priorRank : i+1;
+      priorWins=item.wins; priorRank=rank;
+      return {...item,rank};
+    });
+  }
+
+  function renderWinnersTab(){
+    const totalRows=rankedRows(weeklyHighWins);
+    const posRows=rankedRows(positionHighWins);
+
+    const totalBody=document.getElementById('winnerTotalBody');
+    if(totalBody){
+      totalBody.innerHTML=totalRows.map(r=>
+        `<tr><td>${r.rank}</td><td></td><td><strong>${r.wins}</strong></td></tr>`
+      ).join('');
+      [...totalBody.querySelectorAll('tr')].forEach((tr,i)=>{
+        tr.children[1].textContent=totalRows[i].team;
+      });
+    }
+
+    const posBody=document.getElementById('winnerPositionBody');
+    if(posBody){
+      posBody.innerHTML=posRows.map(r=>
+        `<tr><td>${r.rank}</td><td></td><td><strong>${r.wins}</strong></td></tr>`
+      ).join('');
+      [...posBody.querySelectorAll('tr')].forEach((tr,i)=>{
+        tr.children[1].textContent=posRows[i].team;
+      });
+    }
+
+    const combined=teams.map(team=>{
+      const total=Number((weeklyHighWins.find(x=>x.team===team)||{}).wins||0);
+      const position=Number((positionHighWins.find(x=>x.team===team)||{}).wins||0);
+      return {team,total,position,wins:total+position};
+    });
+    const combinedRows=rankedRows(combined);
+
+    const combinedBody=document.getElementById('winnerCombinedBody');
+    if(combinedBody){
+      combinedBody.innerHTML=combinedRows.map(r=>
+        `<tr><td>${r.rank}</td><td></td><td>${r.total}</td><td>${r.position}</td><td><strong>${r.wins}</strong></td></tr>`
+      ).join('');
+      [...combinedBody.querySelectorAll('tr')].forEach((tr,i)=>{
+        tr.children[1].textContent=combinedRows[i].team;
+      });
+    }
+  }
+
   function money(value){
     const n=Number(value||0);
     return '$'+n.toFixed(2);
@@ -1362,6 +1424,7 @@
       }
 
       renderSeasonWins();
+      renderWinnersTab();
       renderTeams();
       renderWaivers(data.waivers||{});
       const savedIdentity=getChatIdentity();
