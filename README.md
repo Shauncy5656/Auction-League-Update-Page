@@ -1,15 +1,10 @@
-# Auction League Hub — Version 20.4 Stable Fix
+# Auction League Hub — Version 20.5 Chat Button Fix
 
-Fixes:
-- Removes Demo Mode completely.
-- Removes leftover sample scores and player names.
-- Winner boxes start at TBD until weekly results are entered.
-- Fixes iPhone chat identity saving.
-- Restores public API updates and automatic running totals.
-- Keeps named chat, manual weekly results, and automatic sorting.
+Fix:
+- Repairs the Chat "Change" button on iPhone Safari.
+- Removes malformed duplicate class attributes.
+- Adds a direct mobile-safe fallback for opening the name picker.
+- Adds a mobile-safe Save Name fallback.
+- Keeps all Version 20.4 features unchanged.
 
 This build was syntax-checked before packaging.
-
-Important:
-Weekly results and chat are still stored in Render server memory.
-Persistent storage remains the next recommended upgrade.

@@ -629,9 +629,9 @@
         <div class="chat-identity-bar">
           <div>
             <div class="chat-identity-label">Chatting as</div>
-            <div class="chat-identity-name" class="chat-identity-name chatIdentityName">Choose your name</div>
+            <div class="chat-identity-name chatIdentityName">Choose your name</div>
           </div>
-          <button type="button" class="chat-identity-btn" class="chat-identity-btn changeChatIdentity">Change</button>
+          <button type="button" class="chat-identity-btn changeChatIdentity" onclick="openChatIdentityModal()">Change</button>
         </div>
 
         <div class="composer">
@@ -787,9 +787,9 @@
         <div class="chat-identity-bar">
           <div>
             <div class="chat-identity-label">Chatting as</div>
-            <div class="chat-identity-name" class="chat-identity-name chatIdentityName">Choose your name</div>
+            <div class="chat-identity-name chatIdentityName">Choose your name</div>
           </div>
-          <button type="button" class="chat-identity-btn" class="chat-identity-btn changeChatIdentity">Change</button>
+          <button type="button" class="chat-identity-btn changeChatIdentity" onclick="openChatIdentityModal()">Change</button>
         </div>
 
         <div class="composer">
@@ -1058,14 +1058,16 @@
     btn.addEventListener('click',openChatIdentityModal);
   });
 
-  document.getElementById('saveChatIdentity').addEventListener('click',()=>{
+  function saveSelectedChatIdentity(){
     const select=document.getElementById('chatIdentitySelect');
     const name=select.value;
     if(!name) return;
     saveChatIdentityValue(name);
     updateChatIdentityUI();
     closeChatIdentityModal();
-  });
+  }
+
+  document.getElementById('saveChatIdentity').addEventListener('click',saveSelectedChatIdentity);
 
   document.getElementById('cancelChatIdentity').addEventListener('click',closeChatIdentityModal);
   document.querySelector('#chatIdentityModal .identity-backdrop').addEventListener('click',closeChatIdentityModal);
@@ -1199,7 +1201,7 @@
     <select id="chatIdentitySelect" class="identity-select">
       <option value="">Select your name</option>
     </select>
-    <button type="button" id="saveChatIdentity" class="identity-save">Save Name</button>
+    <button type="button" id="saveChatIdentity" class="identity-save" onclick="saveSelectedChatIdentity()">Save Name</button>
     <button type="button" id="cancelChatIdentity" class="identity-cancel">Cancel</button>
   </div>
 </div>
