@@ -1,19 +1,16 @@
-# Auction League Hub — Version 21.0 Unified Sync
+# Auction League Hub — Version 21.1 Public Display Fix
 
-This version removes the separate weekly-results sync path.
+Only the public display was changed.
 
-The public endpoint that is already successfully syncing waiver data now also carries:
+The live JSON proved Commissioner Admin and server storage are working. This build adds a final independent display renderer that reads the same working `/api/public/waivers` feed and directly updates:
+
 - Weekly High Team winner and score
-- Position Challenge winner, player, and score
-- Weekly High Point win totals
-- Position High Point win totals
-- Latest completed weekly result
+- Position Challenge winner/player/score
+- Home-page season win totals
+- Winners tab Total Points
+- Winners tab Position Challenge
+- Winners tab Combined standings
 
-The public page applies both waivers and weekly winners from the SAME request.
+It refreshes every 5 seconds and whenever a tab is opened.
 
-Admin also now shows a Saved Weekly Results section so you can verify exactly what the server retained after saving a week. The save confirmation says CONFIRMED on server only after a second read verifies the result.
-
-All teams begin at 0 when there are no saved weekly results.
-
-Important:
-Data is still stored in Render process memory. Persistent storage is still recommended before real season use.
+Server, Admin, waivers, and chat logic are unchanged.

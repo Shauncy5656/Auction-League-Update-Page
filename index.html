@@ -1496,5 +1496,125 @@
   </div>
 </div>
 
+
+<script>
+(function(){
+  function safeText(id, value){
+    const el=document.getElementById(id);
+    if(el) el.textContent=value;
+  }
+
+  function ranked(teams, winsMap){
+    const rows=teams.map(team=>({team,wins:Number((winsMap||{})[team]||0)}));
+    rows.sort((a,b)=>b.wins-a.wins || a.team.localeCompare(b.team));
+    let lastWins=null,lastRank=0;
+    return rows.map((r,i)=>{
+      const rank=r.wins===lastWins ? lastRank : i+1;
+      lastWins=r.wins; lastRank=rank;
+      return {...r,rank};
+    });
+  }
+
+  function renderList(id, teams, winsMap){
+    const box=document.getElementById(id);
+    if(!box) return;
+    const rows=ranked(teams,winsMap);
+    box.innerHTML=rows.map(r=>`<div class="wins-row"><span></span><strong>${r.wins}</strong></div>`).join('');
+    [...box.querySelectorAll('.wins-row')].forEach((row,i)=>row.querySelector('span').textContent=rows[i].team);
+  }
+
+  function renderTable(id, teams, winsMap){
+    const body=document.getElementById(id);
+    if(!body) return;
+    const rows=ranked(teams,winsMap);
+    body.innerHTML=rows.map(r=>`<tr><td>${r.rank}</td><td></td><td><strong>${r.wins}</strong></td></tr>`).join('');
+    [...body.querySelectorAll('tr')].forEach((row,i)=>row.children[1].textContent=rows[i].team);
+  }
+
+  function renderCombined(id, teams, weeklyWins, positionWins){
+    const body=document.getElementById(id);
+    if(!body) return;
+    const rows=teams.map(team=>{
+      const total=Number((weeklyWins||{})[team]||0);
+      const position=Number((positionWins||{})[team]||0);
+      return {team,total,position,wins:total+position};
+    }).sort((a,b)=>b.wins-a.wins || a.team.localeCompare(b.team));
+
+    let lastWins=null,lastRank=0;
+    rows.forEach((r,i)=>{
+      r.rank=r.wins===lastWins ? lastRank : i+1;
+      lastWins=r.wins; lastRank=r.rank;
+    });
+
+    body.innerHTML=rows.map(r=>`<tr><td>${r.rank}</td><td></td><td>${r.total}</td><td>${r.position}</td><td><strong>${r.wins}</strong></td></tr>`).join('');
+    [...body.querySelectorAll('tr')].forEach((row,i)=>row.children[1].textContent=rows[i].team);
+  }
+
+  function apply(data){
+    const teams=Array.isArray(data.teams) ? data.teams : [];
+    const latest=data.latestResult || null;
+    const weeklyWins=data.weeklyWins || {};
+    const positionWins=data.positionWins || {};
+
+    if(latest){
+      safeText('challengeWeekLabel',`Week ${latest.week} Position Challenge`);
+      safeText('challengePosition',latest.position || 'FLEX');
+      safeText('challengeCopy',`Final result entered by commissioner for Week ${latest.week}.`);
+
+      safeText('weeklyHighLabel',`Week ${latest.week} High Team Score`);
+      safeText('weeklyHighTeamName',latest.weeklyTeam || 'TBD');
+      safeText('weeklyHighTeamScore',Number(latest.weeklyScore).toFixed(2));
+
+      safeText('positionLeaderLabel',`Week ${latest.week} Position Winner (${latest.position || 'FLEX'})`);
+      safeText('positionLeaderPlayer',latest.positionPlayer || 'TBD');
+      safeText('positionLeaderMeta',`${latest.positionTeam || ''}${latest.actualPosition ? ' • '+latest.actualPosition : ''}${latest.position ? ' • '+latest.position : ''}`);
+      safeText('positionLeaderScore',Number(latest.positionScore).toFixed(2));
+
+      const av=document.getElementById('positionLeaderAvatar');
+      if(av) av.textContent=(latest.positionPlayer||'--').split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+    }else{
+      safeText('challengeWeekLabel','Position Challenge');
+      safeText('challengePosition','TBD');
+      safeText('challengeCopy','Weekly position challenge results are entered by the commissioner after the week is complete.');
+      safeText('weeklyHighLabel','Weekly High Team Score');
+      safeText('weeklyHighTeamName','TBD');
+      safeText('weeklyHighTeamScore','--');
+      safeText('positionLeaderLabel','Position Challenge Winner');
+      safeText('positionLeaderPlayer','TBD');
+      safeText('positionLeaderMeta','No completed week entered yet');
+      safeText('positionLeaderScore','--');
+      safeText('positionLeaderAvatar','--');
+    }
+
+    renderList('weeklyWinsList',teams,weeklyWins);
+    renderList('positionWinsList',teams,positionWins);
+    renderTable('winnerTotalBody',teams,weeklyWins);
+    renderTable('winnerPositionBody',teams,positionWins);
+    renderCombined('winnerCombinedBody',teams,weeklyWins,positionWins);
+    safeText('winsTeamCount',`${teams.length} teams • all teams shown • automatically sorted`);
+  }
+
+  async function sync(){
+    try{
+      const r=await fetch('/api/public/waivers?display='+Date.now(),{cache:'no-store'});
+      if(!r.ok) return;
+      apply(await r.json());
+    }catch(e){
+      console.warn('Weekly display sync failed',e);
+    }
+  }
+
+  window.syncWeeklyDisplay=sync;
+  document.addEventListener('DOMContentLoaded',sync);
+  window.addEventListener('pageshow',sync);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) sync(); });
+  document.querySelectorAll('[data-panel]').forEach(btn=>{
+    btn.addEventListener('click',()=>setTimeout(sync,50));
+  });
+  sync();
+  setInterval(sync,5000);
+})();
+</script>
+
 </body>
 </html>
