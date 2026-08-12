@@ -1316,9 +1316,14 @@
           <div>Team</div><div style="text-align:center">Pickups</div>
           <div style="text-align:right">Total Cost</div><div style="text-align:center">Left</div>
         </div>
-        ${teams.map(team=>{
+        ${[...teams].sort((a,b)=>{
+          const ap=Number((summary[a]||{}).pickups||0);
+          const bp=Number((summary[b]||{}).pickups||0);
+          if(bp!==ap) return bp-ap;
+          return a.localeCompare(b);
+        }).map(team=>{
           const info=summary[team]||{pickups:0,totalCost:0,remaining:limit};
-          return `<div class="waiver-summary-row">
+          return `<div class="waiver-summary-row" data-waiver-team="${encodeURIComponent(team)}">
             <div class="waiver-team"></div>
             <div class="waiver-num">${Number(info.pickups||0)}</div>
             <div class="waiver-money">${money(info.totalCost)}</div>
@@ -1326,8 +1331,8 @@
           </div>`;
         }).join('')}
       `;
-      [...summaryBox.querySelectorAll('.waiver-summary-row')].forEach((row,i)=>{
-        row.querySelector('.waiver-team').textContent=teams[i];
+      [...summaryBox.querySelectorAll('.waiver-summary-row')].forEach(row=>{
+        row.querySelector('.waiver-team').textContent=decodeURIComponent(row.dataset.waiverTeam||'');
       });
     }
 
@@ -1550,6 +1555,41 @@
     [...body.querySelectorAll('tr')].forEach((row,i)=>row.children[1].textContent=rows[i].team);
   }
 
+  function challengePositionForWeek(week){
+    const boxes=[...document.querySelectorAll('.week-box')];
+    for(const box of boxes){
+      const weekText=(box.querySelector('.week-num')||{}).textContent || '';
+      const match=weekText.match(/Week\s+(\d+)/i);
+      if(match && Number(match[1])===Number(week)){
+        const pos=box.querySelector('.week-pos');
+        return pos ? pos.textContent.trim() : '';
+      }
+    }
+    return '';
+  }
+
+  function updateNextWeek(latest){
+    const label=document.getElementById('nextWeekLabel');
+    const pos=document.getElementById('nextWeekPosition');
+    if(!label || !pos) return;
+
+    if(!latest || !Number.isFinite(Number(latest.week))){
+      label.textContent='Week 1';
+      pos.textContent=challengePositionForWeek(1) || 'TBD';
+      return;
+    }
+
+    const nextWeek=Number(latest.week)+1;
+    if(nextWeek>18){
+      label.textContent='Season Complete';
+      pos.textContent='—';
+      return;
+    }
+
+    label.textContent=`Week ${nextWeek}`;
+    pos.textContent=challengePositionForWeek(nextWeek) || 'TBD';
+  }
+
   function apply(data){
     const teams=Array.isArray(data.teams) ? data.teams : [];
     const latest=data.latestResult || null;
@@ -1585,6 +1625,8 @@
       safeText('positionLeaderScore','--');
       safeText('positionLeaderAvatar','--');
     }
+
+    updateNextWeek(latest);
 
     renderList('weeklyWinsList',teams,weeklyWins);
     renderList('positionWinsList',teams,positionWins);

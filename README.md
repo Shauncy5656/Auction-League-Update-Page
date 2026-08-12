@@ -1,16 +1,13 @@
-# Auction League Hub — Version 21.1 Public Display Fix
+# Auction League Hub — Version 21.2 Next Week + Waiver Sorting
 
-Only the public display was changed.
+Public-display-only update.
 
-The live JSON proved Commissioner Admin and server storage are working. This build adds a final independent display renderer that reads the same working `/api/public/waivers` feed and directly updates:
+Changes:
+- "Next Week" now automatically uses the latest saved weekly result + 1.
+- The next week's challenge position is read from the existing Season Challenge Schedule.
+- Example: if Week 1 is the latest saved result, the Home page shows Week 2 and Week 2's position.
+- After Week 18, the display shows "Season Complete".
+- Waiver Pickup Totals now sort by most pickups first.
+- Teams tied in waiver pickups are sorted alphabetically.
 
-- Weekly High Team winner and score
-- Position Challenge winner/player/score
-- Home-page season win totals
-- Winners tab Total Points
-- Winners tab Position Challenge
-- Winners tab Combined standings
-
-It refreshes every 5 seconds and whenever a tab is opened.
-
-Server, Admin, waivers, and chat logic are unchanged.
+Server, Commissioner Admin, chat, waiver saving, and weekly-result saving are unchanged.
