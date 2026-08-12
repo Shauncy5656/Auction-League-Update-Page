@@ -86,9 +86,7 @@
     .small{font-size:12px;color:var(--muted)}
     .live{display:inline-flex;align-items:center;gap:7px;color:var(--green);font-size:12px;font-weight:900}
     .live-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(88,214,141,.55)}
-    .chat-card{margin-bottom:18px}
-    .chat-thread{display:flex;flex-direction:column;gap:14px}
-    .chat-row{display:flex;align-items:flex-start;gap:10px}
+.chat-row{display:flex;align-items:flex-start;gap:10px}
     .avatar{
       width:36px;height:36px;border-radius:50%;
       display:grid;place-items:center;flex:0 0 36px;
@@ -241,8 +239,7 @@
       .score{font-size:44px}
       .big-name{font-size:27px}
       .team-list{grid-template-columns:repeat(3,1fr)}
-      .composer{gap:8px}
-      .primary{padding:0 15px}
+.primary{padding:0 15px}
     }
   
     .settings-team-list{
@@ -475,14 +472,6 @@
       padding:15px 16px;
       margin-bottom:14px;
     }
-
-
-    .chat-empty{
-      color:#9fb2c4;
-      font-size:14px;
-      padding:18px 2px 12px;
-      text-align:center;
-    }
 .waiver-summary-table{
       margin-top:14px;
       border:1px solid #285f96;
@@ -587,33 +576,7 @@
 
     <section id="home" class="panel active">
 
-      <div class="card chat-card">
-        <div class="section-head">
-          <div>
-            <div class="section-kicker">League Chat</div>
-            <div class="small" style="margin-top:4px">League conversation</div>
-          </div>
-          <div class="live"><span class="live-dot"></span>CHAT</div>
-        </div>
-
-        <div id="homeChatList" class="chat-thread">
-          <div class="chat-empty">No messages yet. Start the league conversation.</div>
-        </div>
-
-        
-        <div class="chat-identity-bar">
-          <div>
-            <div class="chat-identity-label">Chatting as</div>
-            <div class="chat-identity-name chatIdentityName">Choose your name</div>
-          </div>
-          <button type="button" class="chat-identity-btn changeChatIdentity" onclick="openChatIdentityModal()">Change</button>
-        </div>
-
-        <div class="composer">
-          <input id="homeChatInput" placeholder="Message the league..." />
-          <button class="primary" id="homeSend">Send</button>
-        </div>
-      </div>
+      
 
       <div class="card challenge-card">
         <div class="section-kicker" id="challengeWeekLabel">Position Challenge</div>
@@ -936,15 +899,6 @@
         row.querySelector('.msg').textContent=messages[i].message;
       });
     });
-  }
-
-  async function loadChat(){
-    try{
-      const r=await fetch('/api/chat',{cache:'no-store'});
-      if(!r.ok) return;
-      const data=await r.json();
-      renderChatMessages(data.messages||[]);
-    }catch(e){}
   }
 
   const weeklyHighWins = teams.map(team=>({team,wins:0}));

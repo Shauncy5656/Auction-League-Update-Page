@@ -1,21 +1,15 @@
-# Auction League Hub — Version 21.3 No Chat
+# Auction League Hub — Version 21.4 Chat Fully Removed
 
-Chat has been removed completely.
+This fixes the remaining Home-page League Chat card that Version 21.3 missed.
 
-Kept intact:
-- Weekly High Team results
-- Position Challenge results
-- Season win totals
-- Winners tab
-- Waiver summary and waiver history
-- Waiver sorting by most pickups
-- Automatic Next Week calculation
-- Commissioner Admin controls for league results and waivers
+Removed completely:
+- Home-page chat box
+- Chat navigation tab
+- Chat page
+- Chat name selector
+- Chat composer
+- Chat-related JavaScript
+- Chat-related Admin controls
+- Chat API routes
 
-Removed:
-- Public Chat tab
-- Chat composer and name selector
-- Chat storage/API routes
-- Commissioner chat-clear control
-
-This build is based on the working Version 21.2 public display.
+Everything else remains unchanged from the working Version 21.3 base.
