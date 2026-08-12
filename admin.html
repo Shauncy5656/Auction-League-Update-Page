@@ -51,9 +51,7 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
 </header>
 
 <main class="wrap">
-  <div class="card">
-    <div class="kicker">League Administration</div>
-    <h2>Current Teams</h2>
+<h2>Current Teams</h2>
     <div id="teamList"></div>
     <div class="add-row">
       <input id="newTeam" placeholder="Add another team">
@@ -487,13 +485,6 @@ document.getElementById('resetWeeklyResults').addEventListener('click',async()=>
     document.getElementById('resetWeeklyStatus').textContent=e.message;
   }
 });
-
-document.getElementById('clearChat').addEventListener('click',async()=>{
-  if(!confirm('Clear all league chat messages?')) return;
-  await api('/api/admin/chat',{method:'DELETE'});
-  document.getElementById('chatAdminStatus').textContent='League chat cleared.';
-});
-
 loadState().catch(e=>console.error(e));
 </script>
 </body>

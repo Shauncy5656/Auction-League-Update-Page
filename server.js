@@ -19,7 +19,6 @@ const state = {
     9:'QB',10:'TE',11:'FLEX',12:'WR',13:'RB',14:'QB',15:'TE',16:'FLEX',17:'WR',18:'RB'
   },
   weeklyResults: {},
-  chatMessages: [],
   waiverLimit: null,
   waiverTransactions: []
 };
@@ -324,31 +323,8 @@ app.get('/api/waivers',(req,res)=>{
   });
 });
 
-app.get('/api/chat',(req,res)=>{
-  res.json({messages:state.chatMessages.slice(-100)});
-});
 
-app.post('/api/chat',(req,res)=>{
-  const name=String(req.body.name||'').trim().slice(0,30);
-  const message=String(req.body.message||'').trim().slice(0,500);
-  if(!state.teams.includes(name)) return res.status(400).send('Choose a valid league name.');
-  if(!message) return res.status(400).send('Message is required.');
 
-  const item={
-    id:crypto.randomBytes(8).toString('hex'),
-    name,
-    message,
-    createdAt:new Date().toISOString()
-  };
-  state.chatMessages.push(item);
-  if(state.chatMessages.length>100) state.chatMessages=state.chatMessages.slice(-100);
-  res.json({ok:true,message:item});
-});
-
-app.delete('/api/admin/chat',requireAdmin,(req,res)=>{
-  state.chatMessages=[];
-  res.json({ok:true});
-});
 
 app.get('/api/status',(req,res)=>res.json({
   yahooConnected:yahooConnection.connected,

@@ -101,8 +101,7 @@
     .msg-name{font-weight:900;font-size:14px}
     .msg-time{font-size:12px;color:var(--muted)}
     .msg{font-size:15px;line-height:1.35;color:#fff}
-    .composer{display:flex;gap:10px;margin-top:16px}
-    .composer input{
+.composer input{
       flex:1;min-width:0;
       background:#061522;color:#fff;border:1px solid #3a6f9e;
       border-radius:12px;padding:13px 14px;font-size:16px;
@@ -215,7 +214,7 @@
       border-top:1px solid #1a394f;
       padding:8px 8px calc(8px + env(safe-area-inset-bottom));
     }
-    .mobile-nav-inner{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+    .mobile-nav-inner{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
     .mobile-nav button{
       border:0;background:transparent;color:#aebdca;
       padding:9px 4px;border-radius:10px;font-size:12px;font-weight:800;
@@ -484,110 +483,7 @@
       padding:18px 2px 12px;
       text-align:center;
     }
-
-
-    .chat-identity-bar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 0 4px;
-      margin-top:6px;
-      border-top:1px solid rgba(93,132,171,.35);
-    }
-    .chat-identity-label{
-      font-size:10px;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-      color:#9fb2c4;
-      font-weight:800;
-    }
-    .chat-identity-name{
-      font-size:14px;
-      font-weight:900;
-      color:#fff;
-      margin-top:2px;
-    }
-    .chat-identity-btn{
-      border:1px solid #5d84ab;
-      background:#082447;
-      color:#fff;
-      border-radius:9px;
-      padding:7px 10px;
-      font-weight:800;
-      font-size:12px;
-    }
-    .identity-modal[hidden]{display:none}
-    .identity-modal{
-      position:fixed;
-      inset:0;
-      z-index:9999;
-      display:grid;
-      align-items:end;
-    }
-    .identity-backdrop{
-      position:absolute;
-      inset:0;
-      background:rgba(0,0,0,.62);
-    }
-    .identity-sheet{
-      position:relative;
-      z-index:1;
-      background:#0a315b;
-      border:1px solid #285f96;
-      border-radius:20px 20px 0 0;
-      padding:20px 18px calc(22px + env(safe-area-inset-bottom));
-      box-shadow:0 -20px 50px rgba(0,0,0,.35);
-    }
-    .identity-kicker{
-      color:#ffd100;
-      font-size:11px;
-      font-weight:900;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-    }
-    .identity-title{
-      font-size:24px;
-      font-weight:900;
-      margin-top:5px;
-    }
-    .identity-copy{
-      color:#b9c9da;
-      font-size:13px;
-      margin-top:5px;
-      line-height:1.45;
-    }
-    .identity-select{
-      width:100%;
-      margin-top:16px;
-      padding:12px;
-      border-radius:11px;
-      border:1px solid #4774a0;
-      background:#061b32;
-      color:#fff;
-      font-size:16px;
-    }
-    .identity-save,.identity-cancel{
-      width:100%;
-      margin-top:10px;
-      padding:12px;
-      border-radius:11px;
-      font-weight:900;
-      font-size:16px;
-    }
-    .identity-save{
-      background:#003594;
-      color:#fff;
-      border:1px solid #ffd100;
-    }
-    .identity-cancel{
-      background:transparent;
-      color:#b9c9da;
-      border:1px solid #5d84ab;
-    }
-
-
-    .waiver-summary-table{
+.waiver-summary-table{
       margin-top:14px;
       border:1px solid #285f96;
       border-radius:14px;
@@ -683,8 +579,7 @@
         <button class="nav-btn" data-panel="winners">Winners</button>
         <button class="nav-btn" data-panel="challenge">Challenge</button>
         <button class="nav-btn" data-panel="waivers">Waivers</button>
-        <button class="nav-btn" data-panel="chat">Chat</button>
-      </nav>
+</nav>
     </div>
   </header>
 
@@ -874,37 +769,7 @@
         </div>
       </div>
     </section>
-
-    <section id="chat" class="panel">
-      <div class="card">
-        <div class="section-head">
-          <div>
-            <div class="section-title">League Chat</div>
-            <div class="small" style="margin-top:4px">Full chat view</div>
-          </div>
-        </div>
-        <div id="fullChatList" class="chat-thread">
-          <div class="chat-empty">No messages yet. Start the league conversation.</div>
-        </div>
-        
-        <div class="chat-identity-bar">
-          <div>
-            <div class="chat-identity-label">Chatting as</div>
-            <div class="chat-identity-name chatIdentityName">Choose your name</div>
-          </div>
-          <button type="button" class="chat-identity-btn changeChatIdentity" onclick="openChatIdentityModal()">Change</button>
-        </div>
-
-        <div class="composer">
-          <input id="fullChatInput" placeholder="Message the league..." />
-          <button class="primary" id="fullSend">Send</button>
-        </div>
-      </div>
-    </section>
-
-    
-
-  </main>
+</main>
 
   <div style="max-width:1180px;margin:0 auto;padding:0 20px 92px;text-align:center">
     <a href="/admin" style="font-size:12px;color:#6f8ca4;text-decoration:none">Commissioner Admin</a>
@@ -917,8 +782,7 @@
       <button class="mobile-tab" data-panel="winners">Winners</button>
       <button class="mobile-tab" data-panel="challenge">Challenge</button>
       <button class="mobile-tab" data-panel="waivers">Waivers</button>
-      <button class="mobile-tab" data-panel="chat">Chat</button>
-    </div>
+</div>
   </nav>
 </div>
 
@@ -1082,113 +946,6 @@
       renderChatMessages(data.messages||[]);
     }catch(e){}
   }
-
-  const CHAT_IDENTITY_KEY='auctionLeagueChatIdentity';
-
-  function readChatIdentity(){
-    try{
-      const saved=localStorage.getItem(CHAT_IDENTITY_KEY);
-      if(saved) return saved;
-    }catch(e){}
-    const match=document.cookie.match(/(?:^|;\s*)auctionLeagueChatIdentity=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : '';
-  }
-
-  function saveChatIdentityValue(name){
-    try{ localStorage.setItem(CHAT_IDENTITY_KEY,name); }catch(e){}
-    document.cookie=`auctionLeagueChatIdentity=${encodeURIComponent(name)}; Max-Age=31536000; Path=/; SameSite=Lax; Secure`;
-  }
-
-  function clearChatIdentityValue(){
-    try{ localStorage.removeItem(CHAT_IDENTITY_KEY); }catch(e){}
-    document.cookie='auctionLeagueChatIdentity=; Max-Age=0; Path=/; SameSite=Lax; Secure';
-  }
-
-  function getChatIdentity(){
-    return readChatIdentity();
-  }
-
-  function updateChatIdentityUI(){
-    const name=getChatIdentity();
-    document.querySelectorAll('.chatIdentityName').forEach(el=>{
-      el.textContent=name || 'Choose your name';
-    });
-  }
-
-  function populateChatIdentitySelect(){
-    const select=document.getElementById('chatIdentitySelect');
-    if(!select) return;
-    const current=getChatIdentity();
-    select.innerHTML='<option value="">Select your name</option>';
-    teams.forEach(team=>{
-      const o=document.createElement('option');
-      o.value=team;
-      o.textContent=team;
-      if(team===current) o.selected=true;
-      select.appendChild(o);
-    });
-  }
-
-  function openChatIdentityModal(){
-    populateChatIdentitySelect();
-    document.getElementById('chatIdentityModal').hidden=false;
-  }
-
-  function closeChatIdentityModal(){
-    document.getElementById('chatIdentityModal').hidden=true;
-  }
-
-  async function sendChat(inputId){
-    const input=document.getElementById(inputId);
-    const value=input.value.trim();
-    if(!value) return;
-
-    const name=getChatIdentity();
-    if(!name){
-      openChatIdentityModal();
-      return;
-    }
-
-    const r=await fetch('/api/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,message:value})
-    });
-
-    if(r.ok){
-      input.value='';
-      await loadChat();
-    }else{
-      clearChatIdentityValue();
-      updateChatIdentityUI();
-      openChatIdentityModal();
-    }
-  }
-
-  document.getElementById('homeSend').addEventListener('click',()=>sendChat('homeChatInput'));
-  document.getElementById('fullSend').addEventListener('click',()=>sendChat('fullChatInput'));
-  document.getElementById('homeChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat('homeChatInput')});
-  document.getElementById('fullChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat('fullChatInput')});
-
-  document.querySelectorAll('.changeChatIdentity').forEach(btn=>{
-    btn.addEventListener('click',openChatIdentityModal);
-  });
-
-  function saveSelectedChatIdentity(){
-    const select=document.getElementById('chatIdentitySelect');
-    const name=select.value;
-    if(!name) return;
-    saveChatIdentityValue(name);
-    updateChatIdentityUI();
-    closeChatIdentityModal();
-  }
-
-  document.getElementById('saveChatIdentity').addEventListener('click',saveSelectedChatIdentity);
-
-  document.getElementById('cancelChatIdentity').addEventListener('click',closeChatIdentityModal);
-  document.querySelector('#chatIdentityModal .identity-backdrop').addEventListener('click',closeChatIdentityModal);
-
-  updateChatIdentityUI();
 
   const weeklyHighWins = teams.map(team=>({team,wins:0}));
   const positionHighWins = teams.map(team=>({team,wins:0}));
@@ -1479,29 +1236,12 @@
   renderTeams();
   loadPublicLeagueState();
   loadWaiverState();
-  loadChat();
 
   // Keep open league pages current after commissioner updates.
   setInterval(loadPublicLeagueState, 15000);
   setInterval(loadWaiverState, 10000);
-  setInterval(loadChat, 10000);
+
 </script>
-
-<div id="chatIdentityModal" class="identity-modal" hidden>
-  <div class="identity-backdrop"></div>
-  <div class="identity-sheet">
-    <div class="identity-kicker">League Chat</div>
-    <div class="identity-title">Who are you?</div>
-    <div class="identity-copy">Choose your league name. This phone will remember your selection.</div>
-    <select id="chatIdentitySelect" class="identity-select">
-      <option value="">Select your name</option>
-    </select>
-    <button type="button" id="saveChatIdentity" class="identity-save" onclick="saveSelectedChatIdentity()">Save Name</button>
-    <button type="button" id="cancelChatIdentity" class="identity-cancel">Cancel</button>
-  </div>
-</div>
-
-
 <script>
 (function(){
   function safeText(id, value){

@@ -1,13 +1,21 @@
-# Auction League Hub — Version 21.2 Next Week + Waiver Sorting
+# Auction League Hub — Version 21.3 No Chat
 
-Public-display-only update.
+Chat has been removed completely.
 
-Changes:
-- "Next Week" now automatically uses the latest saved weekly result + 1.
-- The next week's challenge position is read from the existing Season Challenge Schedule.
-- Example: if Week 1 is the latest saved result, the Home page shows Week 2 and Week 2's position.
-- After Week 18, the display shows "Season Complete".
-- Waiver Pickup Totals now sort by most pickups first.
-- Teams tied in waiver pickups are sorted alphabetically.
+Kept intact:
+- Weekly High Team results
+- Position Challenge results
+- Season win totals
+- Winners tab
+- Waiver summary and waiver history
+- Waiver sorting by most pickups
+- Automatic Next Week calculation
+- Commissioner Admin controls for league results and waivers
 
-Server, Commissioner Admin, chat, waiver saving, and weekly-result saving are unchanged.
+Removed:
+- Public Chat tab
+- Chat composer and name selector
+- Chat storage/API routes
+- Commissioner chat-clear control
+
+This build is based on the working Version 21.2 public display.
