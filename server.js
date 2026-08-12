@@ -99,6 +99,11 @@ app.put('/api/admin/schedule',requireAdmin,(req,res)=>{
 });
 
 
+
+app.get('/api/admin/results',requireAdmin,(req,res)=>{
+  res.json({weeklyResults:state.weeklyResults});
+});
+
 app.delete('/api/admin/results',requireAdmin,(req,res)=>{
   state.weeklyResults={};
   res.json({ok:true,weeklyResults:state.weeklyResults});
@@ -279,10 +284,31 @@ app.get('/api/public/waivers',(req,res)=>{
     if(a.date===b.date) return String(b.createdAt).localeCompare(String(a.createdAt));
     return b.date.localeCompare(a.date);
   });
+
+  const weeklyWins=Object.fromEntries(state.teams.map(t=>[t,0]));
+  const positionWins=Object.fromEntries(state.teams.map(t=>[t,0]));
+  Object.values(state.weeklyResults).forEach(r=>{
+    if(r && weeklyWins[r.weeklyTeam] !== undefined) weeklyWins[r.weeklyTeam] += 1;
+    if(r && positionWins[r.positionTeam] !== undefined) positionWins[r.positionTeam] += 1;
+  });
+
+  const completedWeeks=Object.keys(state.weeklyResults)
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a,b)=>a-b);
+  const latestWeek=completedWeeks.length ? completedWeeks[completedWeeks.length-1] : null;
+  const latestResult=latestWeek ? state.weeklyResults[latestWeek] : null;
+
   res.json({
+    teams:state.teams,
     limit:state.waiverLimit,
     summary:buildWaiverSummary(),
-    transactions
+    transactions,
+    weeklyResults:state.weeklyResults,
+    weeklyWins,
+    positionWins,
+    latestWeek,
+    latestResult
   });
 });
 

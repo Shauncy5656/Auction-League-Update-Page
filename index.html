@@ -992,8 +992,7 @@
 
   function refreshSharedLeagueData(){
     loadPublicLeagueState();
-    loadWeeklyResults();
-    loadWaiverState();
+      loadWaiverState();
   }
 
   document.addEventListener('visibilitychange',()=>{
@@ -1369,9 +1368,19 @@
       const r=await fetch('/api/public/waivers?ts='+Date.now(),{cache:'no-store'});
       if(!r.ok) return;
       const data=await r.json();
+
+      // One proven sync path now drives BOTH waiver data and weekly winner data.
       renderWaivers(data||{});
+      applyWeeklyResultsData({
+        teams:data.teams||[],
+        weeklyResults:data.weeklyResults||{},
+        weeklyWins:data.weeklyWins||{},
+        positionWins:data.positionWins||{},
+        latestWeek:data.latestWeek ?? null,
+        latestResult:data.latestResult ?? null
+      });
     }catch(e){
-      console.warn('Waiver state unavailable:',e);
+      console.warn('Shared league sync unavailable:',e);
     }
   }
 
@@ -1464,13 +1473,11 @@
   renderBoard();
   renderTeams();
   loadPublicLeagueState();
-  loadWeeklyResults();
   loadWaiverState();
   loadChat();
 
   // Keep open league pages current after commissioner updates.
   setInterval(loadPublicLeagueState, 15000);
-  setInterval(loadWeeklyResults, 10000);
   setInterval(loadWaiverState, 10000);
   setInterval(loadChat, 10000);
 </script>

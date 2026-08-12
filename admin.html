@@ -143,6 +143,11 @@ input,select{width:100%;margin-top:6px;padding:11px 12px;border-radius:11px;bord
       <button class="btn secondary" id="clearResult">Clear This Week</button>
     </div>
     <div class="status" id="resultStatus"></div>
+    <div style="height:1px;background:#285f96;margin:18px 0"></div>
+    <div class="kicker">Saved On Server</div>
+    <h3 style="margin:5px 0 10px">Saved Weekly Results</h3>
+    <div id="savedWeeklyResults" class="status">No weekly results saved yet.</div>
+
   </div>
 
 
@@ -206,11 +211,41 @@ async function loadState(){
   renderSchedule(state.challengeSchedule || {});
   renderResultControls();
   loadSelectedWeekResult();
+  renderSavedWeeklyResults();
   renderWaiverAdmin();
   if(state.yahoo && state.yahoo.connected){
     document.getElementById('yahooStatus').textContent='Yahoo connected.';
     document.getElementById('leagueId').value=state.yahoo.leagueId || '';
   }
+}
+
+
+function renderSavedWeeklyResults(){
+  const box=document.getElementById('savedWeeklyResults');
+  if(!box) return;
+  const results=adminState.weeklyResults||{};
+  const weeks=Object.keys(results).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+  if(!weeks.length){
+    box.innerHTML='No weekly results saved yet. All teams are at 0.';
+    return;
+  }
+
+  box.innerHTML=weeks.map(week=>{
+    const r=results[week]||results[String(week)];
+    return `<div style="padding:9px 0;border-bottom:1px solid #285f96">
+      <strong>Week ${week}</strong><br>
+      High Team: <span class="saved-weekly-team"></span> — ${Number(r.weeklyScore).toFixed(1)}<br>
+      Position: <span class="saved-position-player"></span> (<span class="saved-position-team"></span>) — ${Number(r.positionScore).toFixed(1)}
+    </div>`;
+  }).join('');
+
+  [...box.children].forEach((row,i)=>{
+    const r=results[weeks[i]]||results[String(weeks[i])];
+    row.querySelector('.saved-weekly-team').textContent=r.weeklyTeam;
+    row.querySelector('.saved-position-player').textContent=r.positionPlayer;
+    row.querySelector('.saved-position-team').textContent=r.positionTeam;
+  });
 }
 
 function renderTeams(teams){
@@ -397,9 +432,13 @@ document.getElementById('saveResult').addEventListener('click',async()=>{
     positionScore:document.getElementById('positionScore').value
   };
   try{
-    const saved=await api('/api/admin/results/'+week,{method:'PUT',body:JSON.stringify(payload)});
+    await api('/api/admin/results/'+week,{method:'PUT',body:JSON.stringify(payload)});
+    const verify=await api('/api/admin/results?ts='+Date.now());
+    const confirmed=(verify.weeklyResults||{})[week] || (verify.weeklyResults||{})[String(week)];
+    if(!confirmed) throw new Error('The server did not retain the saved weekly result.');
+
     document.getElementById('resultStatus').textContent=
-      `Week ${week} saved: ${saved.result.weeklyTeam} ${Number(saved.result.weeklyScore).toFixed(1)} • ${saved.result.positionPlayer} ${Number(saved.result.positionScore).toFixed(1)}.`;
+      `CONFIRMED on server — Week ${week}: ${confirmed.weeklyTeam} ${Number(confirmed.weeklyScore).toFixed(1)} • ${confirmed.positionPlayer} ${Number(confirmed.positionScore).toFixed(1)}.`;
     await loadState();
   }catch(e){
     document.getElementById('resultStatus').textContent=e.message;
